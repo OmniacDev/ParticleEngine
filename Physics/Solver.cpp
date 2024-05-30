@@ -32,8 +32,8 @@ void SOLVER::SolveCollision(Particle& One, Particle& Two) {
     // Calculate final momentum using Law of Conservation of Momentum.
     // Momentum is symbolised by "p".
 
-    const FVector2 final_vel_one = One.Velocity - ((One.Position - Two.Position) * (2 * (Two.Mass) / (One.Mass + Two.Mass)) * (Dot(One.Velocity - Two.Velocity, One.Position - Two.Position) / std::pow(Length(One.Position - Two.Position), 2.0f)) * (One.Elasticity / (One.Elasticity + Two.Elasticity)));
-    const FVector2 final_vel_two = Two.Velocity - ((Two.Position - One.Position) * (2 * (One.Mass) / (One.Mass + Two.Mass)) * (Dot(Two.Velocity - One.Velocity, Two.Position - One.Position) / std::pow(Length(Two.Position - One.Position), 2.0f)) * (Two.Elasticity / (One.Elasticity + Two.Elasticity)));
+    const FVector2 final_vel_one = One.Velocity - ((One.Position - Two.Position) * (2 * (Two.Mass) / (One.Mass + Two.Mass)) * (Dot(One.Velocity - Two.Velocity, One.Position - Two.Position) / std::pow(Length(One.Position - Two.Position), 2.0f)) * (2 * One.Elasticity / (One.Elasticity + Two.Elasticity)));
+    const FVector2 final_vel_two = Two.Velocity - ((Two.Position - One.Position) * (2 * (One.Mass) / (One.Mass + Two.Mass)) * (Dot(Two.Velocity - One.Velocity, Two.Position - One.Position) / std::pow(Length(Two.Position - One.Position), 2.0f)) * (2 * Two.Elasticity / (One.Elasticity + Two.Elasticity)));
 
     One.Velocity = final_vel_one;
     Two.Velocity = final_vel_two;

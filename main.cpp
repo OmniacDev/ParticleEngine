@@ -13,19 +13,20 @@ int main()
 
     InitWindow(ENGINE::WindowWidth, ENGINE::WindowHeight, "[FOE] Physics Engine");
 
-    Particle StationaryParticle (FVector2(0.f, 200.f), GRAY, 64);
+    Particle StationaryParticle (FVector2(-100.f, 0.f), GRAY, 64);
 
-    StationaryParticle.Mass = 2000.f;
-    StationaryParticle.Velocity = FVector2(0.f, 0.f);
+    StationaryParticle.Mass = 1000.f;
+    StationaryParticle.Velocity = FVector2(10.f, 0.f);
     StationaryParticle.Acceleration = FVector2(0.f, -980.f);
-    StationaryParticle.Elasticity = 0.75f;
+    StationaryParticle.Elasticity = 0.5f;
 
     SOLVER::Particles.push_back(StationaryParticle);
 
     for (int i = 0; i < 100; i++) {
-        Particle Water_Particle (FVector2(0.f, -100.f), SKYBLUE, 16);
+        Particle Water_Particle (FVector2(100.f, 0.f), SKYBLUE, 4);
         Water_Particle.Acceleration = FVector2(0.f, -980.f);
-        Water_Particle.Elasticity = 0.75f;
+        Water_Particle.Velocity = FVector2 (-1000.f, 0.0f);
+        Water_Particle.Elasticity = 0.5f;
         Water_Particle.Mass = 1.f;
 
         SOLVER::Particles.push_back(Water_Particle);
@@ -57,7 +58,7 @@ int main()
             DrawLine(X1, Y, X2, Y, GRID::Color);
         }
 
-        for (int substep = 0; substep < 8; substep++) {
+        for (int substep = 0; substep < 1; substep++) {
             for (int i = 0; i < SOLVER::Particles.size(); i++) {
                 for (int j = 0; j < SOLVER::Particles.size(); j++) {
                     if (i == j) continue;
