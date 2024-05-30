@@ -5,6 +5,7 @@
 #include "Physics/Particle.h"
 #include "Physics/Solver.h"
 #include "Engine/Math/Viewport/Viewport.h"
+#include "Engine/Math/Rect/Rect.h"
 
 int main()
 {
@@ -94,6 +95,7 @@ int main()
             DrawCircle(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.Radius, {Particle.Color.r, Particle.Color.g, Particle.Color.b, 127});
             DrawCircleLines(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.Radius, {Particle.Color.r, Particle.Color.g, Particle.Color.b, 255});
         }
+
 
         EndDrawing();
 
