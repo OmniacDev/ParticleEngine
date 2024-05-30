@@ -1,8 +1,5 @@
 #include "raylib.h"
 
-#include <cstdlib>
-#include <ctime>
-
 #include "Engine/EngineGlobalVars.h"
 
 #include "Physics/Particle.h"

@@ -1,5 +1,4 @@
 #include "Solver.h"
-#include "../Engine/Math/Vector/Vector.h"
 
 #include <cmath>
 
