@@ -1,11 +1,16 @@
 #include "raylib.h"
 
+#include <string>
+
 #include "Engine/EngineGlobalVars.h"
 
 #include "Physics/Particle.h"
 #include "Physics/Solver.h"
 #include "Engine/Math/Viewport/Viewport.h"
 #include "Engine/Math/Rect/Rect.h"
+
+const bool FANCY_RENDERING = false;
+const bool RENDERING_ENABLED = true;
 
 int main()
 {
@@ -18,16 +23,16 @@ int main()
 
     StationaryParticle.Mass = 1000.f;
     StationaryParticle.Velocity = FVector2(10.f, 0.f);
-    StationaryParticle.Acceleration = FVector2(0.f, -980.f);
-    StationaryParticle.Elasticity = 0.5f;
+    StationaryParticle.Acceleration = FVector2(0.f, 0.f);
+    StationaryParticle.Elasticity = 1.f;
 
-    SOLVER::Particles.push_back(StationaryParticle);
+    // SOLVER::Particles.push_back(StationaryParticle);
 
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 1000; i++) {
         Particle Water_Particle (FVector2(100.f, 0.f), SKYBLUE, 4);
-        Water_Particle.Acceleration = FVector2(0.f, -980.f);
-        Water_Particle.Velocity = FVector2 (-1000.f, 0.0f);
-        Water_Particle.Elasticity = 0.5f;
+        Water_Particle.Acceleration = FVector2(0.f, -98.f);
+        Water_Particle.Velocity = FVector2 (0.f, 0.0f);
+        Water_Particle.Elasticity = 0.25f;
         Water_Particle.Mass = 1.f;
 
         SOLVER::Particles.push_back(Water_Particle);
@@ -35,10 +40,28 @@ int main()
 
     while (!WindowShouldClose())
     {
-        float DeltaTime = GetFrameTime() > 1.f / ENGINE::WindowFPS ? 1.f / ENGINE::WindowFPS : GetFrameTime();
+        SOLVER::QuadTree.Clear();
+
+        float DeltaTime = GetFrameTime() > 1.f / ENGINE::WindowMinFPS ? 1.f / ENGINE::WindowMinFPS : GetFrameTime();
+
+        int ObjectComparisons = 0;
+        QT_PROF::SEARCH_COUNT = 0;
+        RECT_PROF::OVERLAP_TESTS = 0;
+        RECT_PROF::CONTAIN_TESTS = 0;
+        SOLVER::COLLISION_COUNT = 0;
 
         if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
             VIEWPORT::TranslateViewport(IVector2(static_cast<int>(GetMouseDelta().x), static_cast<int>(GetMouseDelta().y)));
+        }
+
+        if (IsKeyDown(KEY_N)) {
+            Particle Water_Particle (FVector2(100.f, 0.f), SKYBLUE, 8);
+            Water_Particle.Acceleration = FVector2(0.f, 0.f);
+            Water_Particle.Velocity = FVector2 (-1000.f, 0.0f);
+            Water_Particle.Elasticity = 0.25f;
+            Water_Particle.Mass = 1.f;
+
+            SOLVER::Particles.push_back(Water_Particle);
         }
 
         BeginDrawing();
@@ -59,17 +82,9 @@ int main()
             DrawLine(X1, Y, X2, Y, GRID::Color);
         }
 
-        for (int substep = 0; substep < 1; substep++) {
-            for (int i = 0; i < SOLVER::Particles.size(); i++) {
-                for (int j = 0; j < SOLVER::Particles.size(); j++) {
-                    if (i == j) continue;
-
-                    SOLVER::SolveCollision(SOLVER::Particles.at(i), SOLVER::Particles.at(j));
-                }
-            }
-        }
-
         for (auto &Particle: SOLVER::Particles) {
+            SOLVER::QuadTree.Insert(Particle);
+
             Particle.Update(DeltaTime);
 
             if (Particle.Position.X + Particle.Radius > BOUNDS::X_POS) {
@@ -92,10 +107,55 @@ int main()
 
             // Draw Particle
             IVector2 ParticleWindowLocation = VIEWPORT::WorldToViewport(IVector2((int)(Particle.Position.X), (int)(Particle.Position.Y)));
-            DrawCircle(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.Radius, {Particle.Color.r, Particle.Color.g, Particle.Color.b, 127});
-            DrawCircleLines(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.Radius, {Particle.Color.r, Particle.Color.g, Particle.Color.b, 255});
+
+            if (RENDERING_ENABLED) {
+                if (FANCY_RENDERING) {
+                    DrawCircle(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.Radius,
+                               {Particle.Color.r, Particle.Color.g, Particle.Color.b, 127});
+                    DrawCircleLines(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.Radius,
+                                    {Particle.Color.r, Particle.Color.g, Particle.Color.b, 255});
+                } else if (!FANCY_RENDERING) {
+                    DrawRectangle(ParticleWindowLocation.X - (int) Particle.Radius,
+                                  ParticleWindowLocation.Y - (int) Particle.Radius, 2 * (int) Particle.Radius,
+                                  2 * (int) Particle.Radius,
+                                  {Particle.Color.r, Particle.Color.g, Particle.Color.b, 127});
+                    DrawRectangleLines(ParticleWindowLocation.X - (int) Particle.Radius,
+                                       ParticleWindowLocation.Y - (int) Particle.Radius, 2 * (int) Particle.Radius,
+                                       2 * (int) Particle.Radius,
+                                       {Particle.Color.r, Particle.Color.g, Particle.Color.b, 255});
+                }
+            }
         }
 
+        for (int substep = 0; substep < 10; substep++) {
+            for (auto & i : SOLVER::Particles) {
+
+                const std::vector<Particle*> OtherParticles = SOLVER::QuadTree.Search(GetParticleArea(i));
+
+                for (const auto& P : OtherParticles) {
+
+                    if (&i == P) continue;
+
+                    SOLVER::SolveCollision(i, *P);
+
+                    ObjectComparisons++;
+                }
+            }
+        }
+
+        if (true) DrawQuadTree(SOLVER::QuadTree);
+
+        DrawRectangle(16, 16, 200, 168, {80, 80, 80, 100});
+        DrawRectangleLines(16, 16, 200, 168, DARKGRAY);
+
+        DrawText(std::string("FPS: " + std::to_string((int)std::ceil(1.f/GetFrameTime()))).c_str(), 32, 32, 8, RAYWHITE);
+
+        DrawText(std::string("Objects: " + std::to_string((int)SOLVER::Particles.size())).c_str(), 32, 64, 8, RAYWHITE);
+        DrawText(std::string("Comparisons: " + std::to_string((int)ObjectComparisons)).c_str(), 32, 80, 8, YELLOW);
+        DrawText(std::string("Collisions: " + std::to_string((int)SOLVER::COLLISION_COUNT)).c_str(), 32, 96, 8, ORANGE);
+        DrawText(std::string("QuadTree Searches: " + std::to_string((int)QT_PROF::SEARCH_COUNT)).c_str(), 32, 128, 8, RAYWHITE);
+        DrawText(std::string("Overlap Tests: " + std::to_string((int)RECT_PROF::OVERLAP_TESTS)).c_str(), 32, 144, 8, RAYWHITE);
+        DrawText(std::string("Contain Tests: " + std::to_string((int)RECT_PROF::CONTAIN_TESTS)).c_str(), 32, 160, 8, RAYWHITE);
 
         EndDrawing();
 

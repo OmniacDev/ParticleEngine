@@ -38,4 +38,5 @@ void SOLVER::SolveCollision(Particle& One, Particle& Two) {
     One.Velocity = final_vel_one;
     Two.Velocity = final_vel_two;
 
+    SOLVER::COLLISION_COUNT++;
 }

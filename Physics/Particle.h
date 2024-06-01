@@ -4,6 +4,7 @@
 #include "../Engine/Math/Types.h"
 
 #include "raylib.h"
+#include "../Engine/Math/Rect/Rect.h"
 
 class Particle {
 
@@ -23,3 +24,7 @@ public:
     void Update(float DeltaTime);
 
 };
+
+static Rect GetParticleArea(Particle& P) {
+    return Rect(FVector2(P.Position.X - P.Radius, P.Position.Y - P.Radius), FVector2(P.Radius * 2, P.Radius * 2));
+}
