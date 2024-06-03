@@ -36,7 +36,10 @@ add_executable(${PROJECT_NAME} main.cpp
         Physics/Solver.cpp
         Physics/Solver.h
         Physics/QuadTree/QuadTree.h
-        Engine/Math/Rect/Rect.h)
+        Engine/Math/Rect/Rect.h
+        Physics/QuadTree/BetterQuadTree.h
+        Engine/FreeList/FreeList.h
+)
 
 #set(raylib_VERBOSE 1)
 target_link_libraries(${PROJECT_NAME} raylib)

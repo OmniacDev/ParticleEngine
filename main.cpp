@@ -9,7 +9,7 @@
 #include "Engine/Math/Viewport/Viewport.h"
 #include "Engine/Math/Rect/Rect.h"
 
-const bool FANCY_RENDERING = false;
+const bool FAST_RENDERING = true;
 const bool RENDERING_ENABLED = true;
 
 int main()
@@ -18,25 +18,6 @@ int main()
     SetTargetFPS(ENGINE::WindowFPS);
 
     InitWindow(ENGINE::WindowWidth, ENGINE::WindowHeight, "[FOE] Physics Engine");
-
-    Particle StationaryParticle (FVector2(-100.f, 0.f), GRAY, 64);
-
-    StationaryParticle.Mass = 1000.f;
-    StationaryParticle.Velocity = FVector2(10.f, 0.f);
-    StationaryParticle.Acceleration = FVector2(0.f, 0.f);
-    StationaryParticle.Elasticity = 1.f;
-
-    // SOLVER::Particles.push_back(StationaryParticle);
-
-    for (int i = 0; i < 1000; i++) {
-        Particle Water_Particle (FVector2(100.f, 0.f), SKYBLUE, 4);
-        Water_Particle.Acceleration = FVector2(0.f, -98.f);
-        Water_Particle.Velocity = FVector2 (0.f, 0.0f);
-        Water_Particle.Elasticity = 0.25f;
-        Water_Particle.Mass = 1.f;
-
-        SOLVER::Particles.push_back(Water_Particle);
-    }
 
     while (!WindowShouldClose())
     {
@@ -55,13 +36,34 @@ int main()
         }
 
         if (IsKeyDown(KEY_N)) {
-            Particle Water_Particle (FVector2(100.f, 0.f), SKYBLUE, 8);
+            Particle Water_Particle (FVector2(0.f, 0.f), SKYBLUE, 8);
             Water_Particle.Acceleration = FVector2(0.f, 0.f);
-            Water_Particle.Velocity = FVector2 (-1000.f, 0.0f);
+            Water_Particle.Velocity = FVector2 (0.f, 0.0f);
             Water_Particle.Elasticity = 0.25f;
             Water_Particle.Mass = 1.f;
 
             SOLVER::Particles.push_back(Water_Particle);
+
+            for (int i = 0; i < 3; i++) {
+                Particle Small_Water_Particle (FVector2(0.f, 0.f), SKYBLUE, 4);
+                Small_Water_Particle.Acceleration = FVector2(0.f, 0.f);
+                Small_Water_Particle.Velocity = FVector2 (0.f, 0.0f);
+                Small_Water_Particle.Elasticity = 0.25f;
+                Small_Water_Particle.Mass = 1.f;
+
+                SOLVER::Particles.push_back(Small_Water_Particle);
+            }
+        }
+
+        if (IsKeyPressed(KEY_H)) {
+            Particle StationaryParticle (FVector2(0.f, 0.f), GRAY, 64);
+
+            StationaryParticle.Mass = 1000.f;
+            StationaryParticle.Velocity = FVector2(0.f, 0.f);
+            StationaryParticle.Acceleration = FVector2(0.f, 0.f);
+            StationaryParticle.Elasticity = 1.f;
+
+            SOLVER::Particles.push_back(StationaryParticle);
         }
 
         BeginDrawing();
@@ -83,8 +85,6 @@ int main()
         }
 
         for (auto &Particle: SOLVER::Particles) {
-            SOLVER::QuadTree.Insert(Particle);
-
             Particle.Update(DeltaTime);
 
             if (Particle.Position.X + Particle.Radius > BOUNDS::X_POS) {
@@ -104,17 +104,19 @@ int main()
                 Particle.Velocity.Y = Particle.Velocity.Y * -Particle.Elasticity;
             }
 
+            SOLVER::QuadTree.Insert(Particle);
+
 
             // Draw Particle
             IVector2 ParticleWindowLocation = VIEWPORT::WorldToViewport(IVector2((int)(Particle.Position.X), (int)(Particle.Position.Y)));
 
             if (RENDERING_ENABLED) {
-                if (FANCY_RENDERING) {
+                if (!FAST_RENDERING) {
                     DrawCircle(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.Radius,
                                {Particle.Color.r, Particle.Color.g, Particle.Color.b, 127});
                     DrawCircleLines(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.Radius,
                                     {Particle.Color.r, Particle.Color.g, Particle.Color.b, 255});
-                } else if (!FANCY_RENDERING) {
+                } else if (FAST_RENDERING) {
                     DrawRectangle(ParticleWindowLocation.X - (int) Particle.Radius,
                                   ParticleWindowLocation.Y - (int) Particle.Radius, 2 * (int) Particle.Radius,
                                   2 * (int) Particle.Radius,

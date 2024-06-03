@@ -13,7 +13,8 @@ public:
     FVector2 Position;
     FVector2 Size;
 
-    explicit Rect(const FVector2& Position = FVector2(0.f, 0.f), const FVector2& Size = FVector2(1.f, 1.f)) : Position(Position), Size(Size) {}
+    Rect(const FVector2& Position, const FVector2& Size) : Position(Position), Size(Size) {}
+    Rect() : Position(0.f, 0.f), Size(0.f, 0.f) {};
 
     [[nodiscard]] bool Contains(const Rect& R) const {
         RECT_PROF::CONTAIN_TESTS++;
