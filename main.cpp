@@ -9,7 +9,7 @@
 #include "Engine/Math/Viewport/Viewport.h"
 #include "Engine/Math/Rect/Rect.h"
 
-const bool FAST_RENDERING = true;
+const bool FAST_RENDERING = false;
 const bool RENDERING_ENABLED = true;
 
 int main()

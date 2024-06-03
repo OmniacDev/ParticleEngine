@@ -203,7 +203,7 @@ public:
 static void DrawQuadTree(QuadTree& Tree) {
 
     // Draw Possible Trees
-    if (true) {
+    if (false) {
         for (const auto& R : Tree.GetRects()) {
             const IVector2 WorldChildPos = VIEWPORT::WorldToViewport(IVector2((int)R.Position.X, (int)R.Position.Y));
 
@@ -221,7 +221,7 @@ static void DrawQuadTree(QuadTree& Tree) {
     DrawRectangleLines(WorldTreePos.X, WorldTreePos.Y - (int)TreeArea.Size.Y, (int)TreeArea.Size.X, (int)TreeArea.Size.Y, MAGENTA);
     DrawRectangle(WorldTreePos.X, WorldTreePos.Y - (int)TreeArea.Size.Y, (int)TreeArea.Size.X, (int)TreeArea.Size.Y, {255, 0, 255, 5});
 
-    for (const auto& T : Tree.GetChildren()) {
+    if (true) for (const auto& T : Tree.GetChildren()) {
         const Rect& ChildArea = T->GetArea();
 
         const IVector2 WorldChildPos = VIEWPORT::WorldToViewport(IVector2((int)ChildArea.Position.X, (int)ChildArea.Position.Y));
@@ -229,7 +229,7 @@ static void DrawQuadTree(QuadTree& Tree) {
         DrawRectangleLines(WorldChildPos.X, WorldChildPos.Y - (int)ChildArea.Size.Y, (int)ChildArea.Size.X, (int)ChildArea.Size.Y, MAGENTA);
         DrawRectangle(WorldChildPos.X, WorldChildPos.Y - (int)ChildArea.Size.Y, (int)ChildArea.Size.X, (int)ChildArea.Size.Y, {255, 0, 255, 5});
 
-        for (const auto& P : T->GetDirectParticles()) {
+        if (false) for (const auto& P : T->GetDirectParticles()) {
             const IVector2 ViewportParticlePos = VIEWPORT::WorldToViewport(IVector2((int)P->Position.X, (int)P->Position.Y));
 
             DrawText(std::string(std::to_string(T->GetDepth())).c_str(), ViewportParticlePos.X - 4, ViewportParticlePos.Y - 4, 8, WHITE);
