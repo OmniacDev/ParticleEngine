@@ -26,5 +26,5 @@ public:
 };
 
 static Rect GetParticleArea(Particle& P) {
-    return Rect(FVector2(P.Position.X - P.Radius, P.Position.Y - P.Radius), FVector2(P.Radius * 2, P.Radius * 2));
+    return {FVector2(P.Position.X - P.Radius, P.Position.Y - P.Radius), FVector2(P.Radius * 2, P.Radius * 2)};
 }

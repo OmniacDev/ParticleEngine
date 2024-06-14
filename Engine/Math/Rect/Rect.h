@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "../Vector/Vector.h"
 
 namespace RECT_PROF {
@@ -18,16 +17,16 @@ public:
 
     [[nodiscard]] bool Contains(const Rect& R) const {
         RECT_PROF::CONTAIN_TESTS++;
-        return ((R.Position.X >= Position.X) && (R.Position.Y >= Position.Y)) && (((R.Position.X + R.Size.X) < (Position.X + Size.X)) && ((R.Position.Y + R.Size.Y) < (Position.Y + Size.Y)));
+        return ((R.Position.X >= Position.X) && (R.Position.Y >= Position.Y)) && (((R.Position.X + R.Size.X) <= (Position.X + Size.X)) && ((R.Position.Y + R.Size.Y) <= (Position.Y + Size.Y)));
     }
 
     [[nodiscard]] bool Contains(const FVector2& P) const {
         RECT_PROF::CONTAIN_TESTS++;
-        return ((P.X >= Position.X) && (P.Y >= Position.Y)) && ((P.X < (Position.X + Size.X)) && (P.Y < (Position.Y + Size.Y)));
+        return ((P.X >= Position.X) && (P.Y >= Position.Y)) && ((P.X <= (Position.X + Size.X)) && (P.Y <= (Position.Y + Size.Y)));
     }
 
     [[nodiscard]] bool Overlaps(const Rect& R) const {
         RECT_PROF::OVERLAP_TESTS++;
-        return (((Position.X < (R.Position.X + R.Size.X)) && (R.Position.X <= (Position.X + Size.X))) && ((Position.Y < (R.Position.Y + R.Size.Y)) && (R.Position.Y <= (Position.Y + Size.Y))));
+        return (((Position.X <= (R.Position.X + R.Size.X)) && (R.Position.X <= (Position.X + Size.X))) && ((Position.Y <= (R.Position.Y + R.Size.Y)) && (R.Position.Y <= (Position.Y + Size.Y))));
     }
 };

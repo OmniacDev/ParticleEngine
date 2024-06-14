@@ -5,13 +5,18 @@
 #include <list>
 #include "../../Engine/Math/Rect/Rect.h"
 #include "../../Engine/FreeList/FreeList.h"
+#include "../../Engine/Math/Viewport/Viewport.h"
+
+namespace QT_PROF {
+    inline int SEARCH_COUNT = 0;
+}
 
 namespace QUAD_CONFIG {
     // Max amount of children a QuadNode can contain before it needs to subdivide.
     inline const int MAX_CHILDREN = 4;
 
     // Max amount of nested QuadNodes a QuadTree can have.
-    inline const int MAX_DEPTH = 8;
+    inline const int MAX_DEPTH = 6;
 }
 
 static std::array<Rect, 4> QuadSubdivideRect(const Rect& nRect){
@@ -25,31 +30,44 @@ static std::array<Rect, 4> QuadSubdivideRect(const Rect& nRect){
     };
 }
 
-struct QuadElement {
+class QuadElement {
+public:
     // Index of Element (OUTSIDE).
     int m_Index;
 
     // Rect of Element.
     Rect m_Rect;
+
+    QuadElement(int Index, const Rect& Rect) : m_Index(Index), m_Rect(Rect) {}
+    QuadElement() : m_Index(), m_Rect() {}
 };
 
-struct QuadElementNode {
+class QuadElementNode {
+public:
     // Index of referenced QuadElement.
     int m_Index;
 
     // Index of next QuadElementNode in list, or -1 if this is the last Element in list.
     int m_NextIndex;
+
+    QuadElementNode(int Index, int NextIndex): m_Index(Index), m_NextIndex(NextIndex) {}
+    QuadElementNode() : m_Index(), m_NextIndex() {}
 };
 
-struct QuadNode {
+class QuadNode {
+public:
     // Index of first QuadElementNode (leaf) or QuadNode (branch).
     int m_FirstIndex;
 
     // Branch: N = -1, Leaf: N >= 0
     int m_Size;
+
+    QuadNode(int FirstIndex, int Size) : m_FirstIndex(FirstIndex), m_Size(Size) {}
+    QuadNode() : m_FirstIndex(), m_Size() {}
 };
 
-struct QuadNodeData {
+class QuadNodeData {
+public:
     // Index of QuadNode
     int m_Index;
 
@@ -58,12 +76,15 @@ struct QuadNodeData {
 
     // Rect of QuadNode
     Rect m_Rect;
+
+    QuadNodeData(int Index, int Depth, const Rect& Rect) : m_Index(Index), m_Depth(Depth), m_Rect(Rect) {}
+    QuadNodeData() : m_Index(), m_Depth(), m_Rect() {}
 };
 
 class QuadTree {
-protected:
+public:
     // QuadNodes in tree, first node is always this tree's root.
-    std::vector<QuadNode> m_Nodes;
+    FreeList<QuadNode> m_Nodes;
 
     // QuadElements in tree.
     FreeList<QuadElement> m_Elements;
@@ -74,123 +95,72 @@ protected:
     // QuadTree's rect.
     Rect m_Rect;
 
-    // QuadTree's max depth.
-    int m_MaxDepth;
+    // QuadTree's Root Data.
+    QuadNodeData m_RootData;
 
 public:
-    QuadTree(const Rect& Rect, int MaxDepth) : m_Rect(Rect), m_MaxDepth(MaxDepth) {
-        m_Nodes[0] = QuadNode();
+    explicit QuadTree(const Rect& Rect) : m_Rect(Rect) {
+        QuadNode Root (-1, 0);
+
+        m_RootData = QuadNodeData(0, 0, m_Rect);
+
+        m_Nodes.Insert(Root);
     }
 
-    void Insert(QuadElement nElement) {
+    void Insert(const QuadElement& Element) {
+        const int ElementIndex = m_Elements.Insert(Element);
 
-        QuadNode& Root = m_Nodes[0];
-
-        //<<< Add QuadElement to tree:
-        const int nElementIndex = m_Elements.Insert(nElement); // Insert new QuadElement into m_Elements FreeList.
-        //>>>
-
-        //<<< Create QuadElementNode to reference new QuadElement:
-        const QuadElementNode nElementNode{nElementIndex, -1};
-        //>>>
-
-        const bool InsertSuccess = TryInsertElementInLeaf(nElementNode, Root);
-
-        if (!InsertSuccess) {
-            if (!IsLeaf(Root)) {
-                const auto& BranchChildren = GetBranchChildren(Root);
-            }
-        }
-
-
-        // just writing some ideas, has nothing to do with this function.
-        QuadNode& Node = m_Nodes[0];
-
-        if (Node.m_Size > QUAD_CONFIG::MAX_CHILDREN) {
-            // Elements that need to be reprocessed after the node subdivision.
-            std::vector<int> ElementIndices;
-
-            { // scope
-                int t_Index = Node.m_FirstIndex;
-
-                for (int i = 0; i < Node.m_Size; i++) {
-                    ElementIndices.push_back(m_ElementNodes[t_Index].m_Index);
-
-                    t_Index = m_ElementNodes[t_Index].m_NextIndex;
-                }
-            }
-
-            // Set node's size to -1 to signify that it is now a branch.
-            Node.m_Size = -1;
-
-            // Create subdivided nodes and then push them onto m_Nodes.
-            { // scope
-                const int t_FirstIndex = (int) m_Nodes.size();
-
-                for (int i = 0; i < 4; i++) {
-                    m_Nodes.push_back({0, 0});
-                }
-
-                Node.m_FirstIndex = t_FirstIndex;
-            }
-
-            std::array<QuadNode*, 4> Nodes{};
-
-            for (int i = 0; i < 4; i++) {
-                Nodes[i] = &m_Nodes[i + Node.m_FirstIndex];
-            }
-
-            const std::array<Rect, 4> Rects = QuadSubdivideRect(m_Rect);
-
-            for (const auto& Index : ElementIndices) {
-                for (int i = 0; i < 4; i++) {
-                    const QuadElement& Element = m_Elements[Index];
-
-                    if (Element.m_Rect.Overlaps(Rects[i])) {
-
-                    }
-                }
-            }
-        }
-
-
+        NodeInsert(ElementIndex, m_RootData);
     }
 
-    std::list<QuadNodeData> GetLeaves(const QuadNodeData& Root, const Rect& nRect) {
-        std::list<QuadNodeData> Leaves, ToProcess;
+    void Remove(const int ElementIndex) {
+        std::vector<QuadNodeData> Leaves = FindLeaves(m_RootData, m_Elements[ElementIndex].m_Rect);
 
-        ToProcess.push_back(Root);
+        for (const auto& Leaf : Leaves) {
+            int NodeIndex = m_Nodes[Leaf.m_Index].m_FirstIndex;
+            int PreviousIndex = -1;
 
-        while (!ToProcess.empty())
-        {
-            const QuadNodeData NodeData = ToProcess.back();
-            ToProcess.pop_back();
-
-            // If this node is a leaf, insert it to the list.
-            if (m_Nodes[NodeData.m_Index].m_Size != -1) {
-                Leaves.push_back(NodeData);
+            while (NodeIndex != -1 && m_ElementNodes[NodeIndex].m_Index != ElementIndex) {
+                PreviousIndex = NodeIndex;
+                NodeIndex = m_ElementNodes[NodeIndex].m_NextIndex;
             }
 
-            // Otherwise push the children that intersect the rectangle
-            else
-            {
-                const std::array<Rect, 4> ChildRects = QuadSubdivideRect(NodeData.m_Rect);
+            if (NodeIndex != -1) {
+                const int NextIndex = m_ElementNodes[NodeIndex].m_NextIndex;
 
-                for (int i = 0; i < 4; i++) {
-                    if (nRect.Overlaps(ChildRects[i])) {
-                        QuadNodeData ChildNodeData;
-
-                        ChildNodeData.m_Index = m_Nodes[NodeData.m_Index].m_FirstIndex + i;
-                        ChildNodeData.m_Depth = NodeData.m_Depth + 1;
-                        ChildNodeData.m_Rect = ChildRects[i];
-
-                        ToProcess.push_back(ChildNodeData);
-                    }
+                if (PreviousIndex == -1) {
+                    m_Nodes[Leaf.m_Index].m_FirstIndex = NextIndex;
                 }
+                else {
+                    m_ElementNodes[PreviousIndex].m_NextIndex = NextIndex;
+                }
+                m_ElementNodes.Erase(NodeIndex);
+
+                m_Nodes[Leaf.m_Index].m_Size--;
             }
         }
 
-        return Leaves;
+        m_Elements.Erase(ElementIndex);
+    }
+
+    std::vector<int> Search(const Rect& Rect, int IgnoredElement = -1) {
+        QT_PROF::SEARCH_COUNT++;
+
+        std::vector<int> ElementIndices;
+        std::vector<QuadNodeData> Leaves = FindLeaves(m_RootData, Rect);
+
+        for (const auto& Leaf : Leaves) {
+            int ElementNodeIndex = m_Nodes[Leaf.m_Index].m_FirstIndex;
+            while (ElementNodeIndex != -1) {
+                const int ElementIndex = m_ElementNodes[ElementNodeIndex].m_Index;
+                if (ElementIndex != IgnoredElement && Rect.Overlaps(m_Elements[ElementIndex].m_Rect)) {
+                    ElementIndices.push_back(ElementIndex);
+                }
+                ElementNodeIndex = m_ElementNodes[ElementNodeIndex].m_NextIndex;
+            }
+        }
+
+        return ElementIndices;
     }
 
     void Cleanup() {
@@ -217,8 +187,8 @@ public:
                 }
 
                 if (EmptyLeaves == 4) {
-                    for (int i = 0; i < 4; i++) {
-
+                    for (int i = 3; i >= 0; i--) {
+                        m_Nodes.Erase(Node.m_FirstIndex + i);
                     }
 
                     Node.m_Size = 0;
@@ -228,89 +198,115 @@ public:
         }
     }
 
-    // Tries to insert QuadElementNode into a QuadNode, returns true if successful. Returning false means the QuadNode is or needs* to be a branch (* it must subdivide to fit new children)
-    bool TryInsertElementInLeaf(QuadElementNode Element, QuadNode& Leaf) {
-        if (CanInsertToLeaf(Leaf)) {
-            Element.m_NextIndex = -1; // Make sure the new Element is the last in the list.
+    std::vector<QuadNodeData> FindLeaves(const QuadNodeData& NodeData, const Rect& nRect) {
+        std::vector<QuadNodeData> Leaves, ToProcess;
 
-            const int ElementNodeIndex = m_ElementNodes.Insert(Element); // Push new Element into the m_Elements array.
+        ToProcess.push_back(NodeData);
 
-            const int LastElementNodeIndex = LastElementNodeIndexInLeaf(Leaf);
+        while (!ToProcess.empty())
+        {
+            QT_PROF::SEARCH_COUNT++;
 
-            if (LastElementNodeIndex == -1) return false; // Make sure that the last Element is valid.
+            const QuadNodeData nNodeData = ToProcess.back();
+            ToProcess.pop_back();
 
-            QuadElementNode& LastElementNode = m_ElementNodes[LastElementNodeIndex]; // Get the leaf's last Element.
-            LastElementNode.m_NextIndex = ElementNodeIndex; // Point the leaf's last Element to the newly inserted one.
+            // If this node is a leaf, insert it to the list.
+            QuadNode* Node = &m_Nodes[nNodeData.m_Index];
 
-            Leaf.m_Size++; // Increase leaf size after Element has been inserted.
+            if (Node->m_Size != -1) {
+                Leaves.push_back(nNodeData);
+            }
 
-            return true; // Insertion succeeded, return true.
-        }
-        return false; // Unable to insert, return false.
-    }
-
-    // Returns true if QuadNode is a leaf, and if adding a child will NOT cause it to subdivide.
-    static bool CanInsertToLeaf(QuadNode& Leaf) {
-        return (IsLeaf(Leaf) && !IsLeafFull(Leaf));
-    }
-
-    static bool IsLeaf(QuadNode& Leaf) {
-        return (Leaf.m_Size != -1);
-    }
-
-    static bool IsLeafFull(QuadNode& Leaf) {
-        return (Leaf.m_Size == QUAD_CONFIG::MAX_CHILDREN);
-    }
-
-    // Returns the index of the last QuadElementNode in the leaf, or -1 otherwise.
-    int LastElementNodeIndexInLeaf(QuadNode& Leaf) {
-        if (IsLeaf(Leaf)) {
+            // Otherwise push the children that intersect the rectangle
+            else
             {
-                int Index = Leaf.m_FirstIndex;
-                for (int i = 0; i < Leaf.m_Size; i++) {
-                    if (m_ElementNodes[Index].m_NextIndex == -1) break;
+                const std::array<Rect, 4> ChildRects = QuadSubdivideRect(nNodeData.m_Rect);
 
-                    Index = m_ElementNodes[Index].m_NextIndex;
+                for (int i = 0; i < 4; i++) {
+                    if (nRect.Overlaps(ChildRects[i])) {
+                        QuadNodeData ChildNodeData;
+
+                        ChildNodeData.m_Index = Node->m_FirstIndex + i;
+                        ChildNodeData.m_Depth = nNodeData.m_Depth + 1;
+                        ChildNodeData.m_Rect = ChildRects[i];
+
+                        ToProcess.push_back(ChildNodeData);
+                    }
                 }
-                return Index;
             }
         }
-        return -1;
+
+        return Leaves;
     }
 
-    std::array<QuadNode*, 4> GetBranchChildren(QuadNode& Branch) {
-        std::array<QuadNode*, 4> BranchChildren{};
-        for (int i = 0; i < 4; i++) {
-            BranchChildren[i] = &m_Nodes[i + Branch.m_FirstIndex];
+    void LeafInsert(const int ElementIndex, const QuadNodeData& NodeData) { // NOLINT(*-no-recursion)
+        // Get reference to node from QuadNodeData
+        QuadNode* Node = &m_Nodes[NodeData.m_Index];
+
+        const int FirstIndex = Node->m_FirstIndex;
+
+        // Insert new element to the front of linked list
+        Node->m_FirstIndex = m_ElementNodes.Insert(QuadElementNode(ElementIndex, FirstIndex));
+        // Then update node's size
+        Node->m_Size++;
+
+
+        // If leaf is full, subdivide it
+        if (Node->m_Size > QUAD_CONFIG::MAX_CHILDREN && NodeData.m_Depth < QUAD_CONFIG::MAX_DEPTH) {
+            std::vector<int> ElementIndices;
+
+            // Transfer indices of referenced elements to temporary array
+            while (Node->m_FirstIndex != -1) {
+                const int Index = Node->m_FirstIndex; // Get index of element node
+
+                ElementIndices.push_back(m_ElementNodes[Index].m_Index); // Get element index from element node and push it into array
+
+                const int NextIndex = m_ElementNodes[Index].m_NextIndex; // Get next index from element node
+
+                // Remove element node from leaf
+                Node->m_FirstIndex = NextIndex;
+
+                // Then erase element node from tree
+                m_ElementNodes.Erase(Index);
+            }
+
+            // Create 4 child nodes
+            const int FirstChildIndex = m_Nodes.Insert(QuadNode(-1, 0));
+            m_Nodes.Insert(QuadNode(-1, 0));
+            m_Nodes.Insert(QuadNode(-1, 0));
+            m_Nodes.Insert(QuadNode(-1, 0));
+
+            // Get a new ptr cause old one is dirty after inserting new elements
+            Node = &m_Nodes[NodeData.m_Index];
+            Node->m_FirstIndex = FirstChildIndex;
+
+            // Set leaf to branch
+            Node->m_Size = -1;
+
+            // Transfer elements from previous leaf into new branch's children
+            for (const auto& nElementIndex : ElementIndices) {
+                NodeInsert(nElementIndex, NodeData);
+            }
         }
-        return BranchChildren;
     }
 
-//    void NodeInsert(QuadElementNode Element, QuadNode& Node) {
-//
-//        const int ElementNodeIndex = (int)m_ElementNodes.size();
-//        m_ElementNodes.push_back(Element);
-//
-//        if (Node.m_Size == 0) {
-//            Node.m_FirstIndex = ElementNodeIndex;
-//        }
-//
-//        else {
-//
-//            { // scope
-//                int Index = Node.m_FirstIndex;
-//                for (int i = 0; i < Node.m_Size; i++) {
-//                    if (m_ElementNodes[Index].m_NextIndex == -1) break;
-//
-//                    Index = m_ElementNodes[Index].m_NextIndex;
-//                }
-//
-//                QuadElementNode& LastElementNode = m_ElementNodes[Index];
-//
-//                LastElementNode.m_NextIndex = ElementNodeIndex;
-//            }
-//
-//        }
-//    }
+    void NodeInsert(const int ElementIndex, const QuadNodeData& NodeData) { // NOLINT(*-no-recursion)
+        const QuadElement& Element = m_Elements[ElementIndex];
 
+        std::vector<QuadNodeData> Leaves = FindLeaves(NodeData, Element.m_Rect);
+
+        for (const auto& Leaf : Leaves) {
+            LeafInsert(ElementIndex, Leaf);
+        }
+    }
 };
+
+static void DrawQuadTree(QuadTree& Tree) {
+    std::vector<QuadNodeData> Leaves = Tree.FindLeaves(Tree.m_RootData, Tree.m_Rect);
+
+    for (const auto& Leaf : Leaves) {
+        const IVector2 ViewportPosition = VIEWPORT::WorldToViewport(IVector2((int) Leaf.m_Rect.Position.X, (int) Leaf.m_Rect.Position.Y));
+
+        DrawRectangleLines(ViewportPosition.X, ViewportPosition.Y - (int) Leaf.m_Rect.Size.Y, (int) Leaf.m_Rect.Size.X, (int) Leaf.m_Rect.Size.Y, { 200, 200, 200, 255 });
+    }
+}

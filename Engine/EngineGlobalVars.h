@@ -18,7 +18,7 @@ namespace GRID {
     inline const Color Color = { 80, 80, 80, 100 };
     inline const IVector2 Origin(0, 0);
     // inline const IVector2 Amount((int)(ENGINE::WindowWidth / GRID::Size) + 2, (int)(ENGINE::WindowHeight / GRID::Size) + 2);
-    inline const IVector2 Amount(48, 27);
+    inline const IVector2 Amount(32, 18);
 }
 
 namespace BOUNDS {

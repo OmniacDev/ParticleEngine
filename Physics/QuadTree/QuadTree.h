@@ -63,7 +63,7 @@ public:
 
         for (int i = 0; i < 4; i++) {
             if (TreeRects[i].Contains(ParticleSize)) {
-                if (m_Depth + 1 < MAX_DEPTH) {
+                if (m_Depth < MAX_DEPTH) {
                     if (!m_TreePtrs[i]) {
                         m_TreePtrs[i] = std::make_shared<QuadTree>(TreeRects[i], m_Depth + 1);
                     }
