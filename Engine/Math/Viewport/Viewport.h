@@ -2,6 +2,7 @@
 
 #include "../Vector/Vector.h"
 #include "../../EngineGlobalVars.h"
+#include "../Rect/Rect.h"
 
 namespace VIEWPORT {
 
@@ -15,5 +16,8 @@ namespace VIEWPORT {
 
     IVector2 WorldToViewport(IVector2 V);
     IVector2 ViewportToWorld(IVector2 V);
+
+    Rect WorldToViewport(const Rect& Rect);
+    Rect ViewportToWorld(const Rect& Rect);
 }
 

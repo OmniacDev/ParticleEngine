@@ -9,10 +9,18 @@
 #include "Engine/Math/Viewport/Viewport.h"
 #include "Engine/Math/Rect/Rect.h"
 
-bool FAST_RENDERING = false;
+bool FAST_RENDERING = true;
 bool RENDERING_ENABLED = true;
 
+int AVG_FPS = 0;
+
+std::array<int, 256> FPS_Arr;
+unsigned char FPS_Arr_Index = 0;
+
 const FVector2 SearchSize (100.f, 100.f);
+
+const Rect TestRect (FVector2(200.f, -900.f), FVector2(50.f, 20.f));
+const Rect SecondTestRect (FVector2(-300.f, -1500.f), FVector2(120.f, 300.f));
 
 int main()
 {
@@ -21,15 +29,52 @@ int main()
 
     InitWindow(ENGINE::WindowWidth, ENGINE::WindowHeight, "[FOE] Physics Engine");
 
+    for (int i = 0; i < 200; i++) {
+        Particle Water_Particle (FVector2(0.f, 0.f), SKYBLUE, 8);
+        Water_Particle.Acceleration = FVector2(0.f, 0.f);
+        Water_Particle.Velocity = FVector2 (0.f, 0.0f);
+        Water_Particle.Elasticity = 0.25f;
+        Water_Particle.Mass = 1.f;
+
+        SOLVER::Particles.push_back(Water_Particle);
+
+        SOLVER::QuadTree.Insert(QuadElement((int) SOLVER::Particles.size() - 1, GetParticleArea(Water_Particle)));
+
+        for (int j = 0; j < 4; j++) {
+            Particle Small_Water_Particle (FVector2(0.f, 0.f), SKYBLUE, 4);
+            Small_Water_Particle.Acceleration = FVector2(0.f, 0.f);
+            Small_Water_Particle.Velocity = FVector2 (0.f, 0.0f);
+            Small_Water_Particle.Elasticity = 0.25f;
+            Small_Water_Particle.Mass = 1.f;
+
+            SOLVER::Particles.push_back(Small_Water_Particle);
+
+            SOLVER::QuadTree.Insert(QuadElement((int) SOLVER::Particles.size() - 1, GetParticleArea(Small_Water_Particle)));
+        }
+    }
+
     while (!WindowShouldClose())
     {
         float DeltaTime = GetFrameTime() > 1.f / ENGINE::WindowMinFPS ? 1.f / ENGINE::WindowMinFPS : GetFrameTime();
+
+        int CURRENT_FPS = (int)(1 / (GetFrameTime() <= 0 ? 1.f : GetFrameTime()));
+
+        FPS_Arr[FPS_Arr_Index] = CURRENT_FPS;
+        FPS_Arr_Index++;
+
+        AVG_FPS = 0;
+        for (const auto& FPS : FPS_Arr) {
+            AVG_FPS += FPS;
+        }
+        AVG_FPS /= 256;
+
 
         int ObjectComparisons = 0;
         RECT_PROF::OVERLAP_TESTS = 0;
         RECT_PROF::CONTAIN_TESTS = 0;
         SOLVER::COLLISION_COUNT = 0;
         QT_PROF::SEARCH_COUNT = 0;
+        QT_PROF::LEAF_SEARCH_COUNT = 0;
 
         SOLVER::QuadTree.Cleanup();
 
@@ -92,17 +137,58 @@ int main()
             DrawLine(X1, Y, X2, Y, GRID::Color);
         }
 
-        for (int i = 0; i < SOLVER::Particles.size(); i++) {
-            Particle& Particle = SOLVER::Particles[i];
+        for (int substep = 0; substep < 1; substep++) {
+
+            for (int i = 0; i < SOLVER::QuadTree.m_Nodes.Range(); i++) {
+                if (SOLVER::QuadTree.m_Nodes[i].m_Size != -1) {
+                    const QuadNode* Leaf = &SOLVER::QuadTree.m_Nodes[i];
+
+                    std::vector<int> ElementIndices;
+
+                    {
+                        int j = Leaf->m_FirstIndex;
+
+                        while (j != -1) {
+                            const QuadElementNode* ElementNode = &SOLVER::QuadTree.m_ElementNodes[j];
+
+                            ElementIndices.push_back(ElementNode->m_Index);
+                            j = ElementNode->m_NextIndex;
+                        }
+                    }
+
+                    for (const auto& j : ElementIndices) {
+
+                        const int FirstParticleIndex = SOLVER::QuadTree.m_Elements[j].m_Index;
+                        Particle& FirstParticle = SOLVER::Particles[FirstParticleIndex];
+
+                        for (const auto& k : ElementIndices) {
+                            if (j == k) continue;
+
+                            const int SecondParticleIndex = SOLVER::QuadTree.m_Elements[k].m_Index;
+                            Particle& SecondParticle = SOLVER::Particles[SecondParticleIndex];
+
+                            SOLVER::SolveCollision(FirstParticle, SecondParticle);
+
+                            ObjectComparisons++;
+                        }
+                    }
+                }
+            }
+        }
+
+        for (int i = 0; i < SOLVER::QuadTree.m_Elements.Range(); i++) {
+            Particle& Particle = SOLVER::Particles[SOLVER::QuadTree.m_Elements[i].m_Index];
 
             Particle.Update(DeltaTime);
 
-            for (int j = 0; j < SOLVER::QuadTree.m_Elements.Range(); j++) {
-                if (SOLVER::QuadTree.m_Elements[j].m_Index == i) {
-                    SOLVER::QuadTree.Remove(j);
-                    SOLVER::QuadTree.Insert(QuadElement(i, GetParticleArea(Particle)));
-                }
+            if (true) {
+                SOLVER::QuadTree.UpdateElement(i, GetParticleArea(Particle));
             }
+            else {
+                SOLVER::QuadTree.Remove(i);
+                SOLVER::QuadTree.Insert(QuadElement(SOLVER::QuadTree.m_Elements[i].m_Index, GetParticleArea(Particle)));
+            }
+
 
             // Keep particle in bounds
             if (Particle.Position.X + Particle.Radius > BOUNDS::X_POS) {
@@ -145,126 +231,40 @@ int main()
             }
         }
 
-        for (int substep = 0; substep < 1; substep++) {
-
-            for (int i = 0; i < SOLVER::QuadTree.m_Nodes.Range(); i++) {
-                if (SOLVER::QuadTree.m_Nodes[i].m_Size != -1) {
-                    const QuadNode* Leaf = &SOLVER::QuadTree.m_Nodes[i];
-
-                    std::vector<int> ElementIndices;
-
-                    {
-                        int j = Leaf->m_FirstIndex;
-
-                        while (j != -1) {
-                            const QuadElementNode* ElementNode = &SOLVER::QuadTree.m_ElementNodes[j];
-
-                            ElementIndices.push_back(ElementNode->m_Index);
-                            j = ElementNode->m_NextIndex;
-                        }
-                    }
-
-                    for (const auto& j : ElementIndices) {
-
-                        const int FirstParticleIndex = SOLVER::QuadTree.m_Elements[j].m_Index;
-                        Particle& FirstParticle = SOLVER::Particles[FirstParticleIndex];
-
-                        for (const auto& k : ElementIndices) {
-                            if (j == k) continue;
-
-                            const int SecondParticleIndex = SOLVER::QuadTree.m_Elements[k].m_Index;
-                            Particle& SecondParticle = SOLVER::Particles[SecondParticleIndex];
-
-
-                            SOLVER::SolveCollision(FirstParticle, SecondParticle);
-
-                            ObjectComparisons++;
-                        }
-                    }
-                }
-            }
-
-//            for (int i = 0; i < SOLVER::Particles.size(); i++) {
-//
-//                Particle& FirstParticle = SOLVER::Particles[i];
-//
-//                const std::vector<int> OtherParticleIndices = SOLVER::QuadTree.Search(GetParticleArea(FirstParticle), i);
-//
-//                for (const auto& Index : OtherParticleIndices) {
-//                    const int SecondParticleIndex = SOLVER::QuadTree.m_Elements[Index].m_Index;
-//
-//                    if (i == SecondParticleIndex) continue;
-//
-//                    Particle& SecondParticle = SOLVER::Particles[SecondParticleIndex];
-//
-//                    const FVector2 FirstLastPosition = FirstParticle.Position;
-//                    const FVector2 SecondLastPosition = SecondParticle.Position;
-//
-//                    SOLVER::SolveCollision(FirstParticle, SecondParticle);
-//
-//
-//                    // If particle moved, update its position in the quadtree
-//                    if (FirstParticle.Position != FirstLastPosition) {
-//                        // Insert new references to particle in correct leaves
-//                        for (int j = 0; j < SOLVER::QuadTree.m_Elements.Range(); j++) {
-//                            if (SOLVER::QuadTree.m_Elements[j].m_Index == i) {
-//                                SOLVER::QuadTree.Remove(j);
-//                                SOLVER::QuadTree.Insert(QuadElement(i, GetParticleArea(FirstParticle)));
-//                            }
-//                        }
-//                    }
-//
-//                    // If particle moved, update its position in the quadtree
-//                    if (SecondParticle.Position != SecondLastPosition) {
-//                        // Insert new references to particle in correct leaves
-//                        for (int j = 0; j < SOLVER::QuadTree.m_Elements.Range(); j++) {
-//                            if (SOLVER::QuadTree.m_Elements[j].m_Index == SecondParticleIndex) {
-//                                SOLVER::QuadTree.Remove(j);
-//                                SOLVER::QuadTree.Insert(QuadElement(SecondParticleIndex, GetParticleArea(SecondParticle)));
-//                            }
-//                        }
-//                    }
-//
-//
-//                    ObjectComparisons++;
-//                }
-//            }
-        }
-
         if (true) DrawQuadTree(SOLVER::QuadTree);
 
-        const IVector2 MouseWorldPos = VIEWPORT::ViewportToWorld(IVector2(GetMouseX(), GetMouseY()));
-        const FVector2 MouseFloatWorldPos ((float)MouseWorldPos.X, (float)MouseWorldPos.Y);
-
-        const Rect SearchRect (MouseFloatWorldPos - (SearchSize / 2), SearchSize);
-
-        const std::vector<int> SearchResults = SOLVER::QuadTree.Search(SearchRect);
-
-        for (const auto& Result : SearchResults) {
-            const QuadElement& Element = SOLVER::QuadTree.m_Elements[Result];
-
-            const Particle& Particle = SOLVER::Particles[Element.m_Index];
-
-            IVector2 ParticleWindowLocation = VIEWPORT::WorldToViewport(IVector2((int)(Particle.Position.X), (int)(Particle.Position.Y)));
-
-            // DrawCircle(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.Radius,{0, 158, 47, 127});
-            DrawCircleLines(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.Radius,{0, 158, 47, 255});
-        }
-
-        const IVector2 SearchRectViewportPosition = VIEWPORT::WorldToViewport(IVector2((int)SearchRect.Position.X, (int)SearchRect.Position.Y));
-
-        DrawRectangleLines(SearchRectViewportPosition.X, SearchRectViewportPosition.Y - (int)SearchRect.Size.Y, (int)SearchRect.Size.X, (int)SearchRect.Size.Y, SKYBLUE);
+//        const IVector2 MouseWorldPos = VIEWPORT::ViewportToWorld(IVector2(GetMouseX(), GetMouseY()));
+//        const FVector2 MouseFloatWorldPos ((float)MouseWorldPos.X, (float)MouseWorldPos.Y);
+//
+//        const Rect SearchRect (MouseFloatWorldPos - (SearchSize / 2), SearchSize);
+//
+//        const std::vector<int> SearchResults = SOLVER::QuadTree.Search(SearchRect);
+//
+//        for (const auto& Result : SearchResults) {
+//            const QuadElement& Element = SOLVER::QuadTree.m_Elements[Result];
+//
+//            const Particle& Particle = SOLVER::Particles[Element.m_Index];
+//
+//            IVector2 ParticleWindowLocation = VIEWPORT::WorldToViewport(IVector2((int)(Particle.Position.X), (int)(Particle.Position.Y)));
+//
+//            // DrawCircle(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.Radius,{0, 158, 47, 127});
+//            DrawCircleLines(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.Radius,{0, 158, 47, 255});
+//        }
+//        Rect::DrawRect(VIEWPORT::WorldToViewport(SearchRect), SKYBLUE);
 
 
-        DrawRectangle(16, 16, 200, 168, {80, 80, 80, 100});
+
+
+        DrawRectangle(16, 16, 200, 168, {80, 80, 80, 127});
         DrawRectangleLines(16, 16, 200, 168, DARKGRAY);
 
-        DrawText(std::string("FPS: " + std::to_string((int)std::ceil(1.f/GetFrameTime()))).c_str(), 32, 32, 8, RAYWHITE);
+        DrawText(std::string("FPS: " + std::to_string((int)std::ceil(CURRENT_FPS))).c_str(), 32, 32, 8, RAYWHITE);
+        DrawText(std::string("Avg FPS: " + std::to_string((int)std::floor(AVG_FPS))).c_str(), 32, 48, 8, RAYWHITE);
 
         DrawText(std::string("Objects: " + std::to_string((int)SOLVER::Particles.size())).c_str(), 32, 64, 8, RAYWHITE);
         DrawText(std::string("Comparisons: " + std::to_string((int)ObjectComparisons)).c_str(), 32, 80, 8, YELLOW);
         DrawText(std::string("Collisions: " + std::to_string((int)SOLVER::COLLISION_COUNT)).c_str(), 32, 96, 8, ORANGE);
-        DrawText(std::string("QuadTree Searches: " + std::to_string(QT_PROF::SEARCH_COUNT)).c_str(), 32, 128, 8, RAYWHITE);
+        DrawText(std::string("QuadTree Searches: " + std::to_string(QT_PROF::SEARCH_COUNT + QT_PROF::LEAF_SEARCH_COUNT)).c_str(), 32, 128, 8, RAYWHITE);
         DrawText(std::string("Overlap Tests: " + std::to_string((int)RECT_PROF::OVERLAP_TESTS)).c_str(), 32, 144, 8, RAYWHITE);
         DrawText(std::string("Contain Tests: " + std::to_string((int)RECT_PROF::CONTAIN_TESTS)).c_str(), 32, 160, 8, RAYWHITE);
 

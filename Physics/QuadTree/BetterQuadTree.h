@@ -9,6 +9,7 @@
 
 namespace QT_PROF {
     inline int SEARCH_COUNT = 0;
+    inline int LEAF_SEARCH_COUNT = 0;
 }
 
 namespace QUAD_CONFIG {
@@ -117,27 +118,7 @@ public:
         std::vector<QuadNodeData> Leaves = FindLeaves(m_RootData, m_Elements[ElementIndex].m_Rect);
 
         for (const auto& Leaf : Leaves) {
-            int NodeIndex = m_Nodes[Leaf.m_Index].m_FirstIndex;
-            int PreviousIndex = -1;
-
-            while (NodeIndex != -1 && m_ElementNodes[NodeIndex].m_Index != ElementIndex) {
-                PreviousIndex = NodeIndex;
-                NodeIndex = m_ElementNodes[NodeIndex].m_NextIndex;
-            }
-
-            if (NodeIndex != -1) {
-                const int NextIndex = m_ElementNodes[NodeIndex].m_NextIndex;
-
-                if (PreviousIndex == -1) {
-                    m_Nodes[Leaf.m_Index].m_FirstIndex = NextIndex;
-                }
-                else {
-                    m_ElementNodes[PreviousIndex].m_NextIndex = NextIndex;
-                }
-                m_ElementNodes.Erase(NodeIndex);
-
-                m_Nodes[Leaf.m_Index].m_Size--;
-            }
+            LeafRemove(ElementIndex, Leaf);
         }
 
         m_Elements.Erase(ElementIndex);
@@ -161,6 +142,38 @@ public:
         }
 
         return ElementIndices;
+    }
+
+    void UpdateElement(const int ElementIndex, const Rect& NewRect) {
+        QuadElement& Element = m_Elements[ElementIndex];
+        const Rect& OldRect = Element.m_Rect;
+
+        const Rect& CombinedRect = Rect::Combine(OldRect, NewRect);
+
+        // Rect::DrawRect(VIEWPORT::WorldToViewport(CombinedRect), LIME, true);
+
+        const auto& Leaves = FindLeaves(m_RootData, CombinedRect);
+
+        for (const auto& Leaf : Leaves) {
+            const bool NewOverlap = NewRect.Overlaps(Leaf.m_Rect);
+            const bool OldOverlap = OldRect.Overlaps(Leaf.m_Rect);
+
+            if (NewOverlap && OldOverlap) {
+                // Rect::DrawRect(VIEWPORT::WorldToViewport(Leaf.m_Rect), YELLOW);
+                continue;
+            }
+
+            else if (NewOverlap) {
+                LeafInsert(ElementIndex, Leaf);
+                // Rect::DrawRect(VIEWPORT::WorldToViewport(Leaf.m_Rect), {0, 228, 48, 127}, true);
+            }
+            else {
+                LeafRemove(ElementIndex, Leaf);
+                // Rect::DrawRect(VIEWPORT::WorldToViewport(Leaf.m_Rect), {230, 41, 55, 127}, true);
+            }
+        }
+
+        Element.m_Rect = NewRect;
     }
 
     void Cleanup() {
@@ -205,7 +218,7 @@ public:
 
         while (!ToProcess.empty())
         {
-            QT_PROF::SEARCH_COUNT++;
+            QT_PROF::LEAF_SEARCH_COUNT++;
 
             const QuadNodeData nNodeData = ToProcess.back();
             ToProcess.pop_back();
@@ -290,6 +303,30 @@ public:
         }
     }
 
+    void LeafRemove(const int ElementIndex, const QuadNodeData& Leaf) {
+        int NodeIndex = m_Nodes[Leaf.m_Index].m_FirstIndex;
+        int PreviousIndex = -1;
+
+        while (NodeIndex != -1 && m_ElementNodes[NodeIndex].m_Index != ElementIndex) {
+            PreviousIndex = NodeIndex;
+            NodeIndex = m_ElementNodes[NodeIndex].m_NextIndex;
+        }
+
+        if (NodeIndex != -1) {
+            const int NextIndex = m_ElementNodes[NodeIndex].m_NextIndex;
+
+            if (PreviousIndex == -1) {
+                m_Nodes[Leaf.m_Index].m_FirstIndex = NextIndex;
+            }
+            else {
+                m_ElementNodes[PreviousIndex].m_NextIndex = NextIndex;
+            }
+            m_ElementNodes.Erase(NodeIndex);
+
+            m_Nodes[Leaf.m_Index].m_Size--;
+        }
+    }
+
     void NodeInsert(const int ElementIndex, const QuadNodeData& NodeData) { // NOLINT(*-no-recursion)
         const QuadElement& Element = m_Elements[ElementIndex];
 
@@ -307,6 +344,6 @@ static void DrawQuadTree(QuadTree& Tree) {
     for (const auto& Leaf : Leaves) {
         const IVector2 ViewportPosition = VIEWPORT::WorldToViewport(IVector2((int) Leaf.m_Rect.Position.X, (int) Leaf.m_Rect.Position.Y));
 
-        DrawRectangleLines(ViewportPosition.X, ViewportPosition.Y - (int) Leaf.m_Rect.Size.Y, (int) Leaf.m_Rect.Size.X, (int) Leaf.m_Rect.Size.Y, { 200, 200, 200, 255 });
+        DrawRectangleLines(ViewportPosition.X, ViewportPosition.Y - (int) Leaf.m_Rect.Size.Y, (int) Leaf.m_Rect.Size.X, (int) Leaf.m_Rect.Size.Y, { 200, 200, 200, 127 });
     }
 }

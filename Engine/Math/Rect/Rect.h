@@ -29,4 +29,32 @@ public:
         RECT_PROF::OVERLAP_TESTS++;
         return (((Position.X <= (R.Position.X + R.Size.X)) && (R.Position.X <= (Position.X + Size.X))) && ((Position.Y <= (R.Position.Y + R.Size.Y)) && (R.Position.Y <= (Position.Y + Size.Y))));
     }
+
+    static Rect Combine(const Rect& One, const Rect& Two) {
+        const float PosX = One.Position.X < Two.Position.X ? One.Position.X : Two.Position.X;
+        const float PosY = One.Position.Y < Two.Position.Y ? One.Position.Y : Two.Position.Y;
+
+        const float SizeX = (One.Position.X + One.Size.X > Two.Position.X + Two.Size.X ? One.Position.X + One.Size.X : Two.Position.X + Two.Size.X) - PosX;
+        const float SizeY = (One.Position.Y + One.Size.Y > Two.Position.Y + Two.Size.Y ? One.Position.Y + One.Size.Y : Two.Position.Y + Two.Size.Y) - PosY;
+
+        const FVector2 CombinedPosition (PosX, PosY);
+        const FVector2 CombinedSize (SizeX, SizeY);
+
+        return {CombinedPosition, CombinedSize};
+    }
+
+    static void DrawRect(const Rect& R, const Color& Colour, const bool Full = false) {
+        if (Full) {
+            DrawRectangle((int)R.Position.X, (int)R.Position.Y - (int)R.Size.Y, (int)R.Size.X, (int)R.Size.Y, {Colour.r, Colour.g, Colour.b, (unsigned char)(Colour.a / 2)});
+        }
+        else {
+            DrawRectangleLines((int)R.Position.X, (int)R.Position.Y - (int)R.Size.Y, (int)R.Size.X, (int)R.Size.Y, Colour);
+        }
+    }
+
+    static FVector2 MidPoint(const Rect& R) {
+        return FVector2 (R.Position + (R.Size/2));
+    }
 };
+
+
