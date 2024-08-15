@@ -336,6 +336,10 @@ public:
             LeafInsert(ElementIndex, Leaf);
         }
     }
+
+    std::vector<int> GetValidElementIndices() {
+        std::vector<int> ElementIndices;
+    }
 };
 
 static void DrawQuadTree(QuadTree& Tree) {

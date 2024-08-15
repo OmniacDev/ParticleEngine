@@ -9,7 +9,7 @@
 #include "Engine/Math/Viewport/Viewport.h"
 #include "Engine/Math/Rect/Rect.h"
 
-bool FAST_RENDERING = true;
+bool FAST_RENDERING = false;
 bool RENDERING_ENABLED = true;
 
 int AVG_FPS = 0;
@@ -18,9 +18,6 @@ std::array<int, 256> FPS_Arr;
 unsigned char FPS_Arr_Index = 0;
 
 const FVector2 SearchSize (100.f, 100.f);
-
-const Rect TestRect (FVector2(200.f, -900.f), FVector2(50.f, 20.f));
-const Rect SecondTestRect (FVector2(-300.f, -1500.f), FVector2(120.f, 300.f));
 
 int main()
 {
@@ -138,15 +135,15 @@ int main()
         }
 
         for (int substep = 0; substep < 1; substep++) {
+            const auto& Leaves = SOLVER::QuadTree.FindLeaves(SOLVER::QuadTree.m_RootData, SOLVER::QuadTree.m_Rect);
 
-            for (int i = 0; i < SOLVER::QuadTree.m_Nodes.Range(); i++) {
-                if (SOLVER::QuadTree.m_Nodes[i].m_Size != -1) {
-                    const QuadNode* Leaf = &SOLVER::QuadTree.m_Nodes[i];
+            for (const auto& Leaf : Leaves) {
+                    const QuadNode* LeafNode = &SOLVER::QuadTree.m_Nodes[Leaf.m_Index];
 
                     std::vector<int> ElementIndices;
 
                     {
-                        int j = Leaf->m_FirstIndex;
+                        int j = LeafNode->m_FirstIndex;
 
                         while (j != -1) {
                             const QuadElementNode* ElementNode = &SOLVER::QuadTree.m_ElementNodes[j];
@@ -172,7 +169,7 @@ int main()
                             ObjectComparisons++;
                         }
                     }
-                }
+
             }
         }
 
