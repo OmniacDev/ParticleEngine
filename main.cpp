@@ -228,7 +228,7 @@ int main()
             }
         }
 
-        if (true) DrawQuadTree(SOLVER::QuadTree);
+//        if (true) DrawQuadTree(SOLVER::QuadTree);
 
 //        const IVector2 MouseWorldPos = VIEWPORT::ViewportToWorld(IVector2(GetMouseX(), GetMouseY()));
 //        const FVector2 MouseFloatWorldPos ((float)MouseWorldPos.X, (float)MouseWorldPos.Y);

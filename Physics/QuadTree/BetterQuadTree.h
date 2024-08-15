@@ -148,28 +148,18 @@ public:
         QuadElement& Element = m_Elements[ElementIndex];
         const Rect& OldRect = Element.m_Rect;
 
-        const Rect& CombinedRect = Rect::Combine(OldRect, NewRect);
+        const auto& old_leaves = FindLeaves(m_RootData, OldRect);
+        const auto& new_leaves = FindLeaves(m_RootData, NewRect);
 
-        // Rect::DrawRect(VIEWPORT::WorldToViewport(CombinedRect), LIME, true);
-
-        const auto& Leaves = FindLeaves(m_RootData, CombinedRect);
-
-        for (const auto& Leaf : Leaves) {
-            const bool NewOverlap = NewRect.Overlaps(Leaf.m_Rect);
-            const bool OldOverlap = OldRect.Overlaps(Leaf.m_Rect);
-
-            if (NewOverlap && OldOverlap) {
-                // Rect::DrawRect(VIEWPORT::WorldToViewport(Leaf.m_Rect), YELLOW);
-                continue;
+        for (const auto& leaf : old_leaves) {
+            if (!NewRect.Overlaps(leaf.m_Rect)) {
+                LeafRemove(ElementIndex, leaf);
             }
+        }
 
-            else if (NewOverlap) {
-                LeafInsert(ElementIndex, Leaf);
-                // Rect::DrawRect(VIEWPORT::WorldToViewport(Leaf.m_Rect), {0, 228, 48, 127}, true);
-            }
-            else {
-                LeafRemove(ElementIndex, Leaf);
-                // Rect::DrawRect(VIEWPORT::WorldToViewport(Leaf.m_Rect), {230, 41, 55, 127}, true);
+        for (const auto& leaf : new_leaves) {
+            if (!OldRect.Overlaps(leaf.m_Rect)) {
+                LeafInsert(ElementIndex, leaf);
             }
         }
 
@@ -335,10 +325,6 @@ public:
         for (const auto& Leaf : Leaves) {
             LeafInsert(ElementIndex, Leaf);
         }
-    }
-
-    std::vector<int> GetValidElementIndices() {
-        std::vector<int> ElementIndices;
     }
 };
 
