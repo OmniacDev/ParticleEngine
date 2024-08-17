@@ -9,6 +9,7 @@
 #include "../Particle.h"
 #include "../../Engine/Math/Rect/Rect.h"
 #include "../../Engine/Math/Viewport/Viewport.h"
+#include "../../Engine/FreeList/FreeList.h"
 
 const int MAX_DEPTH = 8;
 const int MAX_CHILDREN = 4;
@@ -17,231 +18,202 @@ namespace QT_PROF {
     inline int SEARCH_COUNT = 0;
 }
 
-class QuadTree {
-protected:
-    Rect m_Rect;
-    int m_Depth;
+namespace Quad {
 
-    std::array<std::shared_ptr<QuadTree>, 4> m_TreePtrs{};
-    std::vector<Particle*> m_ParticlePtrs;
+    const int MAX_CHILDREN = 4;
+    const int MAX_DEPTH = 4;
 
-public:
-    QuadTree(Rect Area, int Depth) : m_Rect(Area), m_Depth(Depth) {}
+    struct Node {
+        int start_index{};
+        int num{};
+    };
 
-    void Clear() { // NOLINT(*-no-recursion)
-        m_ParticlePtrs.clear();
+    struct NodeData {
+        int index{};
+        int depth{};
+        Rect rect;
+    };
 
-        for (int i = 0; i < 4; i++) {
-            if (m_TreePtrs[i]) {
-                m_TreePtrs[i]->Clear();
-            }
-            m_TreePtrs[i].reset();
-        }
-    }
+    struct NodeElement {
+        int index{};
+        int next{};
+    };
 
-    [[nodiscard]] int Size() const { // NOLINT(*-no-recursion)
-        int Count = (int)m_ParticlePtrs.size();
+    struct Element {
+        int index{};
+        Rect rect;
+    };
 
-        for (int i = 0; i < 4; i++) {
-            if (m_TreePtrs[i]) Count += m_TreePtrs[i]->Size();
-        }
+    static std::array<Rect, 4> Subdivide(const Rect& rect){
+        const FVector2 child_size = rect.Size / 2;
 
-        return Count;
-    }
-
-    void Insert(Particle& P) { // NOLINT(*-no-recursion)
-
-        const Rect& ParticleSize = GetParticleArea(P);
-
-        const FVector2 TreeSize = m_Rect.Size / 2;
-        const std::array<Rect, 4> TreeRects = {
-                Rect(m_Rect.Position, TreeSize),
-                Rect(FVector2(m_Rect.Position.X + TreeSize.X, m_Rect.Position.Y), TreeSize),
-                Rect(FVector2 (m_Rect.Position.X, m_Rect.Position.Y + TreeSize.Y), TreeSize),
-                Rect(m_Rect.Position + TreeSize, TreeSize)
+        return {
+            Rect(rect.Position, child_size),
+            Rect(FVector2(rect.Position.X + child_size.X, rect.Position.Y), child_size),
+            Rect(FVector2 (rect.Position.X, rect.Position.Y + child_size.Y), child_size),
+            Rect(rect.Position + child_size, child_size)
         };
+    }
 
-        for (int i = 0; i < 4; i++) {
-            if (TreeRects[i].Contains(ParticleSize)) {
-                if (m_Depth < MAX_DEPTH) {
-                    if (!m_TreePtrs[i]) {
-                        m_TreePtrs[i] = std::make_shared<QuadTree>(TreeRects[i], m_Depth + 1);
+    class Tree {
+    public:
+        FreeList<Node> nodes;
+        FreeList<NodeElement> node_elements;
+        FreeList<Element> elements;
+
+        NodeData root_data;
+
+    public:
+        explicit Tree(const Rect& tree_rect) {
+            nodes.Insert({ -1, 0});
+            root_data = { 0, 0, tree_rect };
+        }
+
+        void Insert(const Element& element) {
+            const int element_index = elements.Insert(element);
+            NodeInsert(element_index, root_data);
+        }
+
+        void Remove(const int element_index) {
+            std::vector<NodeData> leaves = FindLeaves(elements[element_index].rect, root_data);
+
+            for (const auto& Leaf : leaves) {
+                LeafRemove(element_index, Leaf);
+            }
+
+            elements.Erase(element_index);
+        }
+
+        void Cleanup() {
+            if (nodes[0].num == -1) {
+                std::vector<int> queue;
+
+                queue.push_back(0);
+
+                while (!queue.empty()) {
+                    const int index = queue.back();
+                    queue.pop_back();
+
+                    Node* node = &nodes[index];
+
+                    int empty_children = 0;
+                    for (int i = 0; i < 4; i++) {
+                        const int child_index = node->start_index + i;
+                        const Node* child_node = &nodes[child_index];
+
+                        if (child_node->num == 0)
+                            empty_children++;
+                        else if (child_node->num == -1)
+                            queue.push_back(child_index);
                     }
 
-                    m_TreePtrs[i]->Insert(P);
-                    return;
+                    if (empty_children == 4) {
+                        for (int i = 3; i >= 0; i--) {
+                            nodes.Erase(node->start_index + i);
+                        }
+
+                        node->num = 0;
+                        node->start_index = -1;
+                    }
                 }
             }
         }
 
-        m_ParticlePtrs.push_back(&P);
-    }
+        void NodeInsert(const int element_index, const NodeData& node_data) {
+            std::vector<NodeData> leaves = FindLeaves(elements[element_index].rect, node_data);
 
-    std::vector<Particle*> Search(const Rect& sArea) { // NOLINT(*-no-recursion)
-        std::vector<Particle*> ParticleList;
-
-        QT_PROF::SEARCH_COUNT++;
-
-        // Check if area overlaps any particles in the current QuadTree, if they do, push them onto the list.
-
-        // SLOW
-        for (const auto& P : m_ParticlePtrs) {
-            if (sArea.Overlaps(GetParticleArea(*P))) {
-                ParticleList.push_back(P);
+            for (const auto& leaf : leaves) {
+                LeafInsert(element_index, leaf);
             }
         }
 
-        const FVector2 TreeSize = m_Rect.Size / 2;
-        const std::array<Rect, 4> TreeRects = {
-                Rect(m_Rect.Position, TreeSize),
-                Rect(FVector2(m_Rect.Position.X + TreeSize.X, m_Rect.Position.Y), TreeSize),
-                Rect(FVector2 (m_Rect.Position.X, m_Rect.Position.Y + TreeSize.Y), TreeSize),
-                Rect(m_Rect.Position + TreeSize, TreeSize)
-        };
+        void LeafInsert(const int element_index, const NodeData& node_data) {
+            Node* node = &nodes[node_data.index];
 
-        // Iterate over possible child QuadTrees
-        for (int i = 0; i < 4; i++) {
-            // If child exists.
-            if (m_TreePtrs[i]) {
-                // This optimisation barely makes any difference, only increases the amount of Contain and Overlap tests.
+            node->start_index = node_elements.Insert({ element_index, node->start_index });
+            node->num++;
 
-                // If area fully contains child QuadTree, push all of its particles onto the list.
-                if (sArea.Contains(TreeRects[i])) {
-                    const std::vector<Particle*>& ChildParticles = m_TreePtrs[i]->GetParticles();
-                    ParticleList.insert(ParticleList.end(), ChildParticles.begin(), ChildParticles.end());
+            if (node->num > Quad::MAX_CHILDREN && node_data.depth < Quad::MAX_DEPTH) {
+                std::vector<int> indices;
+
+                while (node->start_index != -1) {
+                    const int index = node->start_index;
+                    const NodeElement& node_element = node_elements[index];
+                    indices.push_back(node_element.index);
+                    node->start_index = node_element.next;
+                    node_elements.Erase(index);
                 }
 
-                // Or if the area only overlaps a part of the child QuadTree, then keep searching through it.
-                else if (sArea.Overlaps(TreeRects[i])) {
-                    const std::vector<Particle*>& ChildSearchParticles = m_TreePtrs[i]->Search(sArea);
-                    ParticleList.insert(ParticleList.end(), ChildSearchParticles.begin(), ChildSearchParticles.end());
+                const int start_index = nodes.Insert({-1, 0});
+                nodes.Insert({-1, 0});
+                nodes.Insert({-1, 0});
+                nodes.Insert({-1, 0});
+
+                node = &nodes[node_data.index];
+
+                node->start_index = start_index;
+                node->num = -1;
+
+                for (const auto& index : indices) {
+                    NodeInsert(index, node_data);
                 }
             }
         }
 
-        return ParticleList;
-    }
+        std::vector<NodeData> FindLeaves(const Rect& rect, const NodeData& node_data) {
+            std::vector<NodeData> leaves, queue;
 
-    [[nodiscard]] std::vector<Particle*> GetParticles() const { // NOLINT(*-no-recursion)
-        std::vector<Particle*> ParticleList;
+            queue.push_back(node_data);
 
-        ParticleList.reserve(m_ParticlePtrs.size());
+            while (!queue.empty())
+            {
+                const NodeData queue_node_data = queue.back();
+                queue.pop_back();
 
-        for (const auto& P : m_ParticlePtrs) {
-            ParticleList.push_back(P);
+                // If this node is a leaf, insert it to the list.
+                Node* node = &nodes[queue_node_data.index];
+
+                if (node->num != -1) {
+                    leaves.push_back(queue_node_data);
+                }
+                else
+                {
+                    const std::array<Rect, 4> child_rects = Subdivide(queue_node_data.rect);
+
+                    for (int i = 0; i < 4; i++) {
+                        if (rect.Overlaps(child_rects[i])) {
+                            NodeData child_node_data = {node->start_index + i, queue_node_data.depth + 1, child_rects[i]};
+                            queue.push_back(child_node_data);
+                        }
+                    }
+                }
+            }
+
+            return leaves;
         }
 
-        for (int i = 0; i < 4; i++) {
-            if (m_TreePtrs[i]) {
-                const std::vector<Particle*>& ChildParticles = m_TreePtrs[i]->GetParticles();
-                ParticleList.insert(ParticleList.end(), ChildParticles.begin(), ChildParticles.end());
+        void LeafRemove(const int element_index, const NodeData& node_data) {
+            int en_index = nodes[node_data.index].start_index;
+            int prev_index = -1;
+
+            while (en_index != -1 && node_elements[en_index].index != element_index) {
+                prev_index = en_index;
+                en_index = node_elements[en_index].next;
+            }
+
+            if (en_index != -1) {
+                const int NextIndex = node_elements[en_index].next;
+
+                if (prev_index == -1) {
+                    nodes[node_data.index].start_index = NextIndex;
+                }
+                else {
+                    node_elements[prev_index].next = NextIndex;
+                }
+                node_elements.Erase(en_index);
+
+                nodes[node_data.index].num--;
             }
         }
-
-        return ParticleList;
-    }
-
-    [[nodiscard]] Rect GetArea() const {
-        return m_Rect;
-    }
-
-    [[nodiscard]] std::vector<QuadTree*> GetChildren() const { // NOLINT(*-no-recursion)
-        std::vector<QuadTree*> ChildTrees;
-
-        for (int i = 0; i < 4; i++) {
-            if (m_TreePtrs[i]) {
-                ChildTrees.push_back(m_TreePtrs[i].get());
-            }
-        }
-
-        for (int i = 0; i < 4; i++) {
-            if (m_TreePtrs[i]) {
-                const std::vector<QuadTree*>& ChildQuadTrees = m_TreePtrs[i]->GetChildren();
-                ChildTrees.insert(ChildTrees.end(), ChildQuadTrees.begin(), ChildQuadTrees.end());
-            }
-        }
-
-        return ChildTrees;
-    }
-
-    [[nodiscard]] std::vector<Rect> GetRects() const { // NOLINT(*-no-recursion)
-        std::vector<Rect> ChildRects;
-
-        const FVector2 TreeSize = m_Rect.Size / 2;
-        const std::array<Rect, 4> TreeRects = {
-                Rect(m_Rect.Position, TreeSize),
-                Rect(FVector2(m_Rect.Position.X + TreeSize.X, m_Rect.Position.Y), TreeSize),
-                Rect(FVector2 (m_Rect.Position.X, m_Rect.Position.Y + TreeSize.Y), TreeSize),
-                Rect(m_Rect.Position + TreeSize, TreeSize)
-        };
-
-        ChildRects.reserve(TreeRects.size());
-
-        for (auto& R : TreeRects) {
-            ChildRects.push_back(R);
-        }
-
-        for (int i = 0; i < 4; i++) {
-            if (m_TreePtrs[i]) {
-                const std::vector<Rect>& Rects = m_TreePtrs[i]->GetRects();
-                ChildRects.insert(ChildRects.end(), Rects.begin(), Rects.end());
-            }
-        }
-
-        return ChildRects;
-    }
-
-    [[nodiscard]] int GetDepth() const {
-        return m_Depth;
-    }
-
-    [[nodiscard]] std::vector<Particle*> GetDirectParticles() const {
-        return m_ParticlePtrs;
-    }
-};
-
-static void DrawQuadTree(QuadTree& Tree) {
-
-    // Draw Possible Trees
-    if (false) {
-        for (const auto& R : Tree.GetRects()) {
-            const IVector2 WorldChildPos = VIEWPORT::WorldToViewport(IVector2((int)R.Position.X, (int)R.Position.Y));
-
-            DrawRectangleLines(WorldChildPos.X, WorldChildPos.Y - (int)R.Size.Y, (int)R.Size.X, (int)R.Size.Y, ORANGE);
-            DrawRectangle(WorldChildPos.X, WorldChildPos.Y - (int)R.Size.Y, (int)R.Size.X, (int)R.Size.Y, { 255, 161, 0, 1 });
-        }
-    }
-
-
-    // Draw Trees
-    const Rect& TreeArea = Tree.GetArea();
-
-    const IVector2 WorldTreePos = VIEWPORT::WorldToViewport(IVector2((int)TreeArea.Position.X, (int)TreeArea.Position.Y));
-
-    DrawRectangleLines(WorldTreePos.X, WorldTreePos.Y - (int)TreeArea.Size.Y, (int)TreeArea.Size.X, (int)TreeArea.Size.Y, MAGENTA);
-    DrawRectangle(WorldTreePos.X, WorldTreePos.Y - (int)TreeArea.Size.Y, (int)TreeArea.Size.X, (int)TreeArea.Size.Y, {255, 0, 255, 5});
-
-    if (true) for (const auto& T : Tree.GetChildren()) {
-        const Rect& ChildArea = T->GetArea();
-
-        const IVector2 WorldChildPos = VIEWPORT::WorldToViewport(IVector2((int)ChildArea.Position.X, (int)ChildArea.Position.Y));
-
-        DrawRectangleLines(WorldChildPos.X, WorldChildPos.Y - (int)ChildArea.Size.Y, (int)ChildArea.Size.X, (int)ChildArea.Size.Y, MAGENTA);
-        DrawRectangle(WorldChildPos.X, WorldChildPos.Y - (int)ChildArea.Size.Y, (int)ChildArea.Size.X, (int)ChildArea.Size.Y, {255, 0, 255, 5});
-
-        if (false) for (const auto& P : T->GetDirectParticles()) {
-            const IVector2 ViewportParticlePos = VIEWPORT::WorldToViewport(IVector2((int)P->Position.X, (int)P->Position.Y));
-
-            DrawText(std::string(std::to_string(T->GetDepth())).c_str(), ViewportParticlePos.X - 4, ViewportParticlePos.Y - 4, 8, WHITE);
-        }
-    }
-
-    if (false) for (const auto& P : Tree.GetParticles()) {
-        const Rect& ParticleRect = GetParticleArea(*P);
-
-        const IVector2 ViewportParticlePos = VIEWPORT::WorldToViewport(IVector2((int)ParticleRect.Position.X, (int)ParticleRect.Position.Y));
-
-        DrawRectangleLines(ViewportParticlePos.X, ViewportParticlePos.Y - (int)ParticleRect.Size.Y, (int)ParticleRect.Size.X, (int)ParticleRect.Size.Y, GREEN);
-        DrawRectangle(ViewportParticlePos.X, ViewportParticlePos.Y - (int)ParticleRect.Size.Y, (int)ParticleRect.Size.X, (int)ParticleRect.Size.Y, {0, 228, 48, 5});
-    }
+    };
 }
