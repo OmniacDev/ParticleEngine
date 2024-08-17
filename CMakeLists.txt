@@ -37,7 +37,6 @@ add_executable(${PROJECT_NAME} main.cpp
         Physics/Solver.h
         Physics/QuadTree/QuadTree.h
         Engine/Math/Rect/Rect.h
-        Physics/QuadTree/BetterQuadTree.h
         Engine/FreeList/FreeList.h
 )
 
