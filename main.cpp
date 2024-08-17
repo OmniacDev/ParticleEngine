@@ -35,7 +35,7 @@ int main()
 
         SOLVER::Particles.push_back(Water_Particle);
 
-        SOLVER::QuadTree.Insert(QuadElement((int) SOLVER::Particles.size() - 1, GetParticleArea(Water_Particle)));
+        SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(Water_Particle)});
 
         for (int j = 0; j < 4; j++) {
             Particle Small_Water_Particle (FVector2(0.f, 0.f), SKYBLUE, 4);
@@ -46,7 +46,7 @@ int main()
 
             SOLVER::Particles.push_back(Small_Water_Particle);
 
-            SOLVER::QuadTree.Insert(QuadElement((int) SOLVER::Particles.size() - 1, GetParticleArea(Small_Water_Particle)));
+            SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(Small_Water_Particle)});
         }
     }
 
@@ -71,7 +71,6 @@ int main()
         RECT_PROF::CONTAIN_TESTS = 0;
         SOLVER::COLLISION_COUNT = 0;
         QT_PROF::SEARCH_COUNT = 0;
-        QT_PROF::LEAF_SEARCH_COUNT = 0;
 
         SOLVER::QuadTree.Cleanup();
 
@@ -88,7 +87,7 @@ int main()
 
             SOLVER::Particles.push_back(Water_Particle);
 
-            SOLVER::QuadTree.Insert(QuadElement((int) SOLVER::Particles.size() - 1, GetParticleArea(Water_Particle)));
+            SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(Water_Particle)});
 
             for (int i = 0; i < 3; i++) {
                 Particle Small_Water_Particle (FVector2(0.f, 0.f), SKYBLUE, 4);
@@ -99,7 +98,7 @@ int main()
 
                 SOLVER::Particles.push_back(Small_Water_Particle);
 
-                SOLVER::QuadTree.Insert(QuadElement((int) SOLVER::Particles.size() - 1, GetParticleArea(Small_Water_Particle)));
+                SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(Small_Water_Particle)});
             }
         }
 
@@ -113,7 +112,7 @@ int main()
 
             SOLVER::Particles.push_back(StationaryParticle);
 
-            SOLVER::QuadTree.Insert(QuadElement((int) SOLVER::Particles.size() - 1, GetParticleArea(StationaryParticle)));
+            SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(StationaryParticle)});
         }
 
         BeginDrawing();
@@ -135,33 +134,33 @@ int main()
         }
 
         for (int substep = 0; substep < 1; substep++) {
-            const auto& Leaves = SOLVER::QuadTree.FindLeaves(SOLVER::QuadTree.m_RootData, SOLVER::QuadTree.m_Rect);
+            const auto& Leaves = SOLVER::QuadTree.FindLeaves(SOLVER::QuadTree.root_data.rect, SOLVER::QuadTree.root_data);
 
             for (const auto& Leaf : Leaves) {
-                    const QuadNode* LeafNode = &SOLVER::QuadTree.m_Nodes[Leaf.m_Index];
+                    const Quad::Node* LeafNode = &SOLVER::QuadTree.nodes[Leaf.index];
 
                     std::vector<int> ElementIndices;
 
                     {
-                        int j = LeafNode->m_FirstIndex;
+                        int j = LeafNode->start_index;
 
                         while (j != -1) {
-                            const QuadElementNode* ElementNode = &SOLVER::QuadTree.m_ElementNodes[j];
+                            const Quad::NodeElement* node_element = &SOLVER::QuadTree.node_elements[j];
 
-                            ElementIndices.push_back(ElementNode->m_Index);
-                            j = ElementNode->m_NextIndex;
+                            ElementIndices.push_back(node_element->index);
+                            j = node_element->next;
                         }
                     }
 
                     for (const auto& j : ElementIndices) {
 
-                        const int FirstParticleIndex = SOLVER::QuadTree.m_Elements[j].m_Index;
+                        const int FirstParticleIndex = SOLVER::QuadTree.elements[j].index;
                         Particle& FirstParticle = SOLVER::Particles[FirstParticleIndex];
 
                         for (const auto& k : ElementIndices) {
                             if (j == k) continue;
 
-                            const int SecondParticleIndex = SOLVER::QuadTree.m_Elements[k].m_Index;
+                            const int SecondParticleIndex = SOLVER::QuadTree.elements[k].index;
                             Particle& SecondParticle = SOLVER::Particles[SecondParticleIndex];
 
                             SOLVER::SolveCollision(FirstParticle, SecondParticle);
@@ -173,19 +172,13 @@ int main()
             }
         }
 
-        for (int i = 0; i < SOLVER::QuadTree.m_Elements.Range(); i++) {
-            Particle& Particle = SOLVER::Particles[SOLVER::QuadTree.m_Elements[i].m_Index];
+        for (int i = 0; i < SOLVER::QuadTree.elements.Range(); i++) {
+            Particle& Particle = SOLVER::Particles[SOLVER::QuadTree.elements[i].index];
 
             Particle.Update(DeltaTime);
 
-            if (true) {
-                SOLVER::QuadTree.UpdateElement(i, GetParticleArea(Particle));
-            }
-            else {
-                SOLVER::QuadTree.Remove(i);
-                SOLVER::QuadTree.Insert(QuadElement(SOLVER::QuadTree.m_Elements[i].m_Index, GetParticleArea(Particle)));
-            }
-
+            SOLVER::QuadTree.Remove(i);
+            SOLVER::QuadTree.Insert({SOLVER::QuadTree.elements[i].index, GetParticleArea(Particle)});
 
             // Keep particle in bounds
             if (Particle.Position.X + Particle.Radius > BOUNDS::X_POS) {
@@ -261,7 +254,7 @@ int main()
         DrawText(std::string("Objects: " + std::to_string((int)SOLVER::Particles.size())).c_str(), 32, 64, 8, RAYWHITE);
         DrawText(std::string("Comparisons: " + std::to_string((int)ObjectComparisons)).c_str(), 32, 80, 8, YELLOW);
         DrawText(std::string("Collisions: " + std::to_string((int)SOLVER::COLLISION_COUNT)).c_str(), 32, 96, 8, ORANGE);
-        DrawText(std::string("QuadTree Searches: " + std::to_string(QT_PROF::SEARCH_COUNT + QT_PROF::LEAF_SEARCH_COUNT)).c_str(), 32, 128, 8, RAYWHITE);
+        DrawText(std::string("QuadTree Searches: " + std::to_string(QT_PROF::SEARCH_COUNT)).c_str(), 32, 128, 8, RAYWHITE);
         DrawText(std::string("Overlap Tests: " + std::to_string((int)RECT_PROF::OVERLAP_TESTS)).c_str(), 32, 144, 8, RAYWHITE);
         DrawText(std::string("Contain Tests: " + std::to_string((int)RECT_PROF::CONTAIN_TESTS)).c_str(), 32, 160, 8, RAYWHITE);
 
