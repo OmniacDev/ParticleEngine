@@ -13,5 +13,5 @@ namespace SOLVER {
 
     inline Quad::Tree QuadTree(Rect(FVector2(BOUNDS::X_NEG, BOUNDS::Y_NEG), FVector2((float)GRID::Amount.X * GRID::Size, (float)GRID::Amount.Y * GRID::Size)));
 
-    void SolveCollision(Particle& One, Particle& Two);
+    void SolveCollision(Particle& one, Particle& two);
 }

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <immintrin.h>
+#include <avxintrin.h>
+
 #include <vector>
 #include <array>
 #include <memory>
@@ -10,6 +13,7 @@
 #include "../../Engine/Math/Rect/Rect.h"
 #include "../../Engine/Math/Viewport/Viewport.h"
 #include "../../Engine/FreeList/FreeList.h"
+#include "../Solver.h"
 
 const int MAX_DEPTH = 8;
 const int MAX_CHILDREN = 4;
@@ -155,7 +159,11 @@ namespace Quad {
                 node->num = -1;
 
                 for (const auto& index : indices) {
-                    NodeInsert(index, node_data);
+                    std::vector<NodeData> leaves = FindLeaves(elements[element_index].rect, node_data);
+
+                    for (const auto& leaf : leaves) {
+                        LeafInsert(element_index, leaf);
+                    }
                 }
             }
         }
@@ -216,4 +224,20 @@ namespace Quad {
             }
         }
     };
+
+    void GetElementIndices(const Tree *tree, const Node *node, std::vector<int> &indices);
+}
+
+inline void Quad::GetElementIndices(const Quad::Tree* tree, const Quad::Node* node, std::vector<int>& indices) {
+    if (node->num == -1) return;
+
+    indices.reserve(indices.size() + node->num);
+
+    int i = node->start_index;
+    while (i != -1) {
+        const Quad::NodeElement* node_element = &tree->node_elements[i];
+
+        indices.push_back(node_element->index);
+        i = node_element->next;
+    }
 }

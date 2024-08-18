@@ -9,22 +9,22 @@
 class Particle {
 
 public:
-    Particle(FVector2 Position, Color Color, float Radius) : Position(Position), Color(Color), Radius(Radius) {}
+    Particle(const FVector2& position, const Color& color, const float radius) : position(position), color(color), radius(radius) {}
 
-    FVector2 Position = FVector2(0.0f, 0.0f);
-    FVector2 Velocity = FVector2(0.0f, 0.0f);
-    FVector2 Acceleration = FVector2(0.0f, 0.0f);
+    FVector2 position = FVector2(0.0f, 0.0f);
+    FVector2 velocity = FVector2(0.0f, 0.0f);
+    FVector2 acceleration = FVector2(0.0f, 0.0f);
 
-    Color Color = { 245, 245, 245, 255 };
+    Color color = {245, 245, 245, 255 };
 
-    float Radius = 1.0f;
-    float Mass = 1.0f;
-    float Elasticity = 1.0f;
+    float radius = 1.0f;
+    float mass = 1.0f;
+    float elasticity = 1.0f;
 
-    void Update(float DeltaTime);
+    void Update(float delta_time);
 
 };
 
-static Rect GetParticleArea(Particle& P) {
-    return {FVector2(P.Position.X - P.Radius, P.Position.Y - P.Radius), FVector2(P.Radius * 2, P.Radius * 2)};
+static Rect GetParticleArea(const Particle& p) {
+    return {FVector2(p.position.X - p.radius, p.position.Y - p.radius), FVector2(p.radius * 2, p.radius * 2)};
 }

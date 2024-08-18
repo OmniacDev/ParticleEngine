@@ -1,6 +1,7 @@
 #include "raylib.h"
 
 #include <string>
+#include <set>
 
 #include "Engine/EngineGlobalVars.h"
 
@@ -28,10 +29,10 @@ int main()
 
     for (int i = 0; i < 200; i++) {
         Particle Water_Particle (FVector2(0.f, 0.f), SKYBLUE, 8);
-        Water_Particle.Acceleration = FVector2(0.f, 0.f);
-        Water_Particle.Velocity = FVector2 (0.f, 0.0f);
-        Water_Particle.Elasticity = 0.25f;
-        Water_Particle.Mass = 1.f;
+        Water_Particle.acceleration = FVector2(0.f, 0.f);
+        Water_Particle.velocity = FVector2 (0.f, 0.0f);
+        Water_Particle.elasticity = 0.25f;
+        Water_Particle.mass = 1.f;
 
         SOLVER::Particles.push_back(Water_Particle);
 
@@ -39,10 +40,10 @@ int main()
 
         for (int j = 0; j < 4; j++) {
             Particle Small_Water_Particle (FVector2(0.f, 0.f), SKYBLUE, 4);
-            Small_Water_Particle.Acceleration = FVector2(0.f, 0.f);
-            Small_Water_Particle.Velocity = FVector2 (0.f, 0.0f);
-            Small_Water_Particle.Elasticity = 0.25f;
-            Small_Water_Particle.Mass = 1.f;
+            Small_Water_Particle.acceleration = FVector2(0.f, 0.f);
+            Small_Water_Particle.velocity = FVector2 (0.f, 0.0f);
+            Small_Water_Particle.elasticity = 0.25f;
+            Small_Water_Particle.mass = 1.f;
 
             SOLVER::Particles.push_back(Small_Water_Particle);
 
@@ -80,10 +81,10 @@ int main()
 
         if (IsKeyDown(KEY_N)) {
             Particle Water_Particle (FVector2(0.f, 0.f), SKYBLUE, 8);
-            Water_Particle.Acceleration = FVector2(0.f, -980.f);
-            Water_Particle.Velocity = FVector2 (0.f, 0.0f);
-            Water_Particle.Elasticity = 0.25f;
-            Water_Particle.Mass = 1.f;
+            Water_Particle.acceleration = FVector2(0.f, -980.f);
+            Water_Particle.velocity = FVector2 (0.f, 0.0f);
+            Water_Particle.elasticity = 0.25f;
+            Water_Particle.mass = 1.f;
 
             SOLVER::Particles.push_back(Water_Particle);
 
@@ -91,10 +92,10 @@ int main()
 
             for (int i = 0; i < 3; i++) {
                 Particle Small_Water_Particle (FVector2(0.f, 0.f), SKYBLUE, 4);
-                Small_Water_Particle.Acceleration = FVector2(0.f, -980.f);
-                Small_Water_Particle.Velocity = FVector2 (0.f, 0.0f);
-                Small_Water_Particle.Elasticity = 0.25f;
-                Small_Water_Particle.Mass = 1.f;
+                Small_Water_Particle.acceleration = FVector2(0.f, -980.f);
+                Small_Water_Particle.velocity = FVector2 (0.f, 0.0f);
+                Small_Water_Particle.elasticity = 0.25f;
+                Small_Water_Particle.mass = 1.f;
 
                 SOLVER::Particles.push_back(Small_Water_Particle);
 
@@ -105,10 +106,10 @@ int main()
         if (IsKeyPressed(KEY_H)) {
             Particle StationaryParticle (FVector2(0.f, 0.f), GRAY, 64);
 
-            StationaryParticle.Mass = 1000.f;
-            StationaryParticle.Velocity = FVector2(0.f, 0.f);
-            StationaryParticle.Acceleration = FVector2(0.f, -980.f);
-            StationaryParticle.Elasticity = 1.f;
+            StationaryParticle.mass = 1000.f;
+            StationaryParticle.velocity = FVector2(0.f, 0.f);
+            StationaryParticle.acceleration = FVector2(0.f, -980.f);
+            StationaryParticle.elasticity = 1.f;
 
             SOLVER::Particles.push_back(StationaryParticle);
 
@@ -134,41 +135,23 @@ int main()
         }
 
         for (int substep = 0; substep < 1; substep++) {
-            const auto& Leaves = SOLVER::QuadTree.FindLeaves(SOLVER::QuadTree.root_data.rect, SOLVER::QuadTree.root_data);
+            for (int i = 0; i < SOLVER::QuadTree.nodes.Range(); i++) {
+                if (SOLVER::QuadTree.nodes[i].num == -1) continue;
 
-            for (const auto& Leaf : Leaves) {
-                    const Quad::Node* LeafNode = &SOLVER::QuadTree.nodes[Leaf.index];
+                std::vector<int> indices;
+                Quad::GetElementIndices(&SOLVER::QuadTree, &SOLVER::QuadTree.nodes[i], indices);
 
-                    std::vector<int> ElementIndices;
+                for (const int j : indices) {
+                    for (const int k : indices) {
+                        if (j == k) continue;
 
-                    {
-                        int j = LeafNode->start_index;
+                        Particle& FirstParticle = SOLVER::Particles[SOLVER::QuadTree.elements[j].index];
+                        Particle& SecondParticle = SOLVER::Particles[SOLVER::QuadTree.elements[k].index];
 
-                        while (j != -1) {
-                            const Quad::NodeElement* node_element = &SOLVER::QuadTree.node_elements[j];
-
-                            ElementIndices.push_back(node_element->index);
-                            j = node_element->next;
-                        }
+                        SOLVER::SolveCollision(FirstParticle, SecondParticle);
+                        ObjectComparisons++;
                     }
-
-                    for (const auto& j : ElementIndices) {
-
-                        const int FirstParticleIndex = SOLVER::QuadTree.elements[j].index;
-                        Particle& FirstParticle = SOLVER::Particles[FirstParticleIndex];
-
-                        for (const auto& k : ElementIndices) {
-                            if (j == k) continue;
-
-                            const int SecondParticleIndex = SOLVER::QuadTree.elements[k].index;
-                            Particle& SecondParticle = SOLVER::Particles[SecondParticleIndex];
-
-                            SOLVER::SolveCollision(FirstParticle, SecondParticle);
-
-                            ObjectComparisons++;
-                        }
-                    }
-
+                }
             }
         }
 
@@ -181,42 +164,42 @@ int main()
             SOLVER::QuadTree.Insert({SOLVER::QuadTree.elements[i].index, GetParticleArea(Particle)});
 
             // Keep particle in bounds
-            if (Particle.Position.X + Particle.Radius > BOUNDS::X_POS) {
-                Particle.Position.X = BOUNDS::X_POS - Particle.Radius;
-                Particle.Velocity.X = Particle.Velocity.X * -Particle.Elasticity;
+            if (Particle.position.X + Particle.radius > BOUNDS::X_POS) {
+                Particle.position.X = BOUNDS::X_POS - Particle.radius;
+                Particle.velocity.X = Particle.velocity.X * -Particle.elasticity;
             }
-            if (Particle.Position.X - Particle.Radius < BOUNDS::X_NEG) {
-                Particle.Position.X = BOUNDS::X_NEG + Particle.Radius;
-                Particle.Velocity.X = Particle.Velocity.X * -Particle.Elasticity;
+            if (Particle.position.X - Particle.radius < BOUNDS::X_NEG) {
+                Particle.position.X = BOUNDS::X_NEG + Particle.radius;
+                Particle.velocity.X = Particle.velocity.X * -Particle.elasticity;
             }
-            if (Particle.Position.Y + Particle.Radius > BOUNDS::Y_POS) {
-                Particle.Position.Y = BOUNDS::Y_POS - Particle.Radius;
-                Particle.Velocity.Y = Particle.Velocity.Y * -Particle.Elasticity;
+            if (Particle.position.Y + Particle.radius > BOUNDS::Y_POS) {
+                Particle.position.Y = BOUNDS::Y_POS - Particle.radius;
+                Particle.velocity.Y = Particle.velocity.Y * -Particle.elasticity;
             }
-            if (Particle.Position.Y - Particle.Radius < BOUNDS::Y_NEG) {
-                Particle.Position.Y = BOUNDS::Y_NEG + Particle.Radius;
-                Particle.Velocity.Y = Particle.Velocity.Y * -Particle.Elasticity;
+            if (Particle.position.Y - Particle.radius < BOUNDS::Y_NEG) {
+                Particle.position.Y = BOUNDS::Y_NEG + Particle.radius;
+                Particle.velocity.Y = Particle.velocity.Y * -Particle.elasticity;
             }
 
             // Draw Particle
-            IVector2 ParticleWindowLocation = VIEWPORT::WorldToViewport(IVector2((int)(Particle.Position.X), (int)(Particle.Position.Y)));
+            IVector2 ParticleWindowLocation = VIEWPORT::WorldToViewport(IVector2((int)(Particle.position.X), (int)(Particle.position.Y)));
 
             if (RENDERING_ENABLED) {
                 if (FAST_RENDERING) {
-                    DrawRectangle(ParticleWindowLocation.X - (int) Particle.Radius,
-                                  ParticleWindowLocation.Y - (int) Particle.Radius, 2 * (int) Particle.Radius,
-                                  2 * (int) Particle.Radius,
-                                  {Particle.Color.r, Particle.Color.g, Particle.Color.b, 127});
-                    DrawRectangleLines(ParticleWindowLocation.X - (int) Particle.Radius,
-                                       ParticleWindowLocation.Y - (int) Particle.Radius, 2 * (int) Particle.Radius,
-                                       2 * (int) Particle.Radius,
-                                       {Particle.Color.r, Particle.Color.g, Particle.Color.b, 255});
+                    DrawRectangle(ParticleWindowLocation.X - (int) Particle.radius,
+                                  ParticleWindowLocation.Y - (int) Particle.radius, 2 * (int) Particle.radius,
+                                  2 * (int) Particle.radius,
+                                  {Particle.color.r, Particle.color.g, Particle.color.b, 127});
+                    DrawRectangleLines(ParticleWindowLocation.X - (int) Particle.radius,
+                                       ParticleWindowLocation.Y - (int) Particle.radius, 2 * (int) Particle.radius,
+                                       2 * (int) Particle.radius,
+                                       {Particle.color.r, Particle.color.g, Particle.color.b, 255});
                 }
                 else {
-                    DrawCircle(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.Radius,
-                               {Particle.Color.r, Particle.Color.g, Particle.Color.b, 127});
-                    DrawCircleLines(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.Radius,
-                                    {Particle.Color.r, Particle.Color.g, Particle.Color.b, 255});
+                    DrawCircle(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.radius,
+                               {Particle.color.r, Particle.color.g, Particle.color.b, 127});
+                    DrawCircleLines(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.radius,
+                                    {Particle.color.r, Particle.color.g, Particle.color.b, 255});
                 }
             }
         }
@@ -235,10 +218,10 @@ int main()
 //
 //            const Particle& Particle = SOLVER::Particles[Element.m_Index];
 //
-//            IVector2 ParticleWindowLocation = VIEWPORT::WorldToViewport(IVector2((int)(Particle.Position.X), (int)(Particle.Position.Y)));
+//            IVector2 ParticleWindowLocation = VIEWPORT::WorldToViewport(IVector2((int)(Particle.position.X), (int)(Particle.position.Y)));
 //
-//            // DrawCircle(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.Radius,{0, 158, 47, 127});
-//            DrawCircleLines(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.Radius,{0, 158, 47, 255});
+//            // DrawCircle(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.radius,{0, 158, 47, 127});
+//            DrawCircleLines(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.radius,{0, 158, 47, 255});
 //        }
 //        Rect::DrawRect(VIEWPORT::WorldToViewport(SearchRect), SKYBLUE);
 
