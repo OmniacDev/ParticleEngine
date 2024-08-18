@@ -27,29 +27,29 @@ int main()
 
     InitWindow(ENGINE::WindowWidth, ENGINE::WindowHeight, "[FOE] Physics Engine");
 
-    for (int i = 0; i < 200; i++) {
-        Particle Water_Particle (FVector2(0.f, 0.f), SKYBLUE, 8);
-        Water_Particle.acceleration = FVector2(0.f, 0.f);
-        Water_Particle.velocity = FVector2 (0.f, 0.0f);
-        Water_Particle.elasticity = 0.25f;
-        Water_Particle.mass = 1.f;
-
-        SOLVER::Particles.push_back(Water_Particle);
-
-        SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(Water_Particle)});
-
-        for (int j = 0; j < 4; j++) {
-            Particle Small_Water_Particle (FVector2(0.f, 0.f), SKYBLUE, 4);
-            Small_Water_Particle.acceleration = FVector2(0.f, 0.f);
-            Small_Water_Particle.velocity = FVector2 (0.f, 0.0f);
-            Small_Water_Particle.elasticity = 0.25f;
-            Small_Water_Particle.mass = 1.f;
-
-            SOLVER::Particles.push_back(Small_Water_Particle);
-
-            SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(Small_Water_Particle)});
-        }
-    }
+//    for (int i = 0; i < 200; i++) {
+//        Particle Water_Particle (FVector2(0.f, 0.f), SKYBLUE, 8);
+//        Water_Particle.acceleration = FVector2(0.f, 0.f);
+//        Water_Particle.velocity = FVector2 (0.f, 0.0f);
+//        Water_Particle.elasticity = 0.25f;
+//        Water_Particle.mass = 1.f;
+//
+//        SOLVER::Particles.push_back(Water_Particle);
+//
+//        SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(Water_Particle)});
+//
+//        for (int j = 0; j < 4; j++) {
+//            Particle Small_Water_Particle (FVector2(0.f, 0.f), SKYBLUE, 4);
+//            Small_Water_Particle.acceleration = FVector2(0.f, 0.f);
+//            Small_Water_Particle.velocity = FVector2 (0.f, 0.0f);
+//            Small_Water_Particle.elasticity = 0.25f;
+//            Small_Water_Particle.mass = 1.f;
+//
+//            SOLVER::Particles.push_back(Small_Water_Particle);
+//
+//            SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(Small_Water_Particle)});
+//        }
+//    }
 
     while (!WindowShouldClose())
     {
@@ -80,27 +80,29 @@ int main()
         }
 
         if (IsKeyDown(KEY_N)) {
-            Particle Water_Particle (FVector2(0.f, 0.f), SKYBLUE, 8);
-            Water_Particle.acceleration = FVector2(0.f, -980.f);
-            Water_Particle.velocity = FVector2 (0.f, 0.0f);
-            Water_Particle.elasticity = 0.25f;
-            Water_Particle.mass = 1.f;
+            for (int i = 0; i < 8; i ++) {
+                Particle Water_Particle(FVector2(0.f, 0.f), SKYBLUE, 8);
+                // Water_Particle.acceleration = FVector2(0.f, -980.f);
+                Water_Particle.velocity = FVector2(0.f, 0.0f);
+                Water_Particle.elasticity = 0.25f;
+                Water_Particle.mass = 1.f;
 
-            SOLVER::Particles.push_back(Water_Particle);
+                SOLVER::Particles.push_back(Water_Particle);
 
-            SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(Water_Particle)});
-
-            for (int i = 0; i < 3; i++) {
-                Particle Small_Water_Particle (FVector2(0.f, 0.f), SKYBLUE, 4);
-                Small_Water_Particle.acceleration = FVector2(0.f, -980.f);
-                Small_Water_Particle.velocity = FVector2 (0.f, 0.0f);
-                Small_Water_Particle.elasticity = 0.25f;
-                Small_Water_Particle.mass = 1.f;
-
-                SOLVER::Particles.push_back(Small_Water_Particle);
-
-                SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(Small_Water_Particle)});
+                SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(Water_Particle)});
             }
+
+//            for (int i = 0; i < 3; i++) {
+//                Particle Small_Water_Particle (FVector2(0.f, 0.f), SKYBLUE, 4);
+//                Small_Water_Particle.acceleration = FVector2(0.f, -980.f);
+//                Small_Water_Particle.velocity = FVector2 (0.f, 0.0f);
+//                Small_Water_Particle.elasticity = 0.25f;
+//                Small_Water_Particle.mass = 1.f;
+//
+//                SOLVER::Particles.push_back(Small_Water_Particle);
+//
+//                SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(Small_Water_Particle)});
+//            }
         }
 
         if (IsKeyPressed(KEY_H)) {
@@ -134,7 +136,7 @@ int main()
             DrawLine(X1, Y, X2, Y, GRID::Color);
         }
 
-        for (int substep = 0; substep < 1; substep++) {
+        for (int substep = 0; substep < 4; substep++) {
             for (int i = 0; i < SOLVER::QuadTree.nodes.Range(); i++) {
                 if (SOLVER::QuadTree.nodes[i].num == -1) continue;
 
