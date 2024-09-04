@@ -43,12 +43,17 @@ public:
         return {CombinedPosition, CombinedSize};
     }
 
-    static void DrawRect(const Rect& R, const Color& Colour, const bool Full = false) {
+    static sf::RectangleShape DrawRect(const Rect& R, const sf::Color& Colour, const bool Full = false) {
+        sf::RectangleShape rect(sf::Vector2(R.Size.X, R.Size.Y));
+        rect.setPosition(R.Position.X, R.Position.Y);
         if (Full) {
-            DrawRectangle((int)R.Position.X, (int)R.Position.Y - (int)R.Size.Y, (int)R.Size.X, (int)R.Size.Y, {Colour.r, Colour.g, Colour.b, (unsigned char)(Colour.a / 2)});
+            rect.setFillColor({Colour.r, Colour.g, Colour.b, (unsigned char)(Colour.a / 2)});
+            return rect;
         }
         else {
-            DrawRectangleLines((int)R.Position.X, (int)R.Position.Y - (int)R.Size.Y, (int)R.Size.X, (int)R.Size.Y, Colour);
+            rect.setOutlineThickness(1.0f);
+            rect.setOutlineColor({Colour.r, Colour.g, Colour.b, 255});
+            return rect;
         }
     }
 
