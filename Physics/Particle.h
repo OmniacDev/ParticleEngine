@@ -1,21 +1,22 @@
 #pragma once
 
+#include <SFML/Graphics.hpp>
+
 #include "../Engine/Math/Vector/Vector.h"
 #include "../Engine/Math/Types.h"
 
-#include "raylib.h"
 #include "../Engine/Math/Rect/Rect.h"
 
 class Particle {
 
 public:
-    Particle(const FVector2& position, const Color& color, const float radius) : position(position), color(color), radius(radius) {}
+    Particle(const FVector2& position, const sf::Color& color, const float radius) : position(position), color(color), radius(radius) {}
 
     FVector2 position = FVector2(0.0f, 0.0f);
     FVector2 velocity = FVector2(0.0f, 0.0f);
     FVector2 acceleration = FVector2(0.0f, 0.0f);
 
-    Color color = {245, 245, 245, 255 };
+    sf::Color color = {245, 245, 245, 255 };
 
     float radius = 1.0f;
     float mass = 1.0f;
