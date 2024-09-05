@@ -16,6 +16,8 @@
 #include "Engine/SFML/ShapeConversions.h"
 #include "Engine/SFML/VertexArray.h"
 
+#include "Engine/Shaders/Shaders.h"
+
 bool FAST_RENDERING = false;
 bool RENDERING_ENABLED = true;
 
@@ -27,6 +29,9 @@ const FVector2 SearchSize (100.f, 100.f);
 
 int main()
 {
+    sf::Shader particle_shader;
+    particle_shader.loadFromMemory(particle_vs, particle_fs);
+
     sf::ContextSettings window_settings;
     window_settings.antialiasingLevel = 8;
 
@@ -151,7 +156,7 @@ int main()
             window.draw(line, 2, sf::Lines);
         }
 
-        for (int substep = 0; substep < 4; substep++) {
+        for (int substep = 0; substep < 8; substep++) {
             for (int i = 0; i < SOLVER::QuadTree.nodes.Range(); i++) {
                 if (SOLVER::QuadTree.nodes[i].num == -1) continue;
 
@@ -172,8 +177,7 @@ int main()
             }
         }
 
-        sf::VertexArray vertices{sf::PrimitiveType::Triangles};
-        sf::VertexArray outline_vertices{sf::PrimitiveType::TriangleStrip};
+        // sf::VertexArray vertices(sf::PrimitiveType::Quads, 4 * SOLVER::Particles.size());
 
         for (int i = 0; i < SOLVER::QuadTree.elements.Range(); i++) {
             Particle& Particle = SOLVER::Particles[SOLVER::QuadTree.elements[i].index];
@@ -210,16 +214,31 @@ int main()
             particle.setOutlineThickness(1.0f);
             particle.setOutlineColor({Particle.color.r, Particle.color.g, Particle.color.b, 255});
 
+//            const int vi = i * 4;
+//
+//            vertices[vi + 0].position = {(float)ParticleWindowLocation.X - Particle.radius, (float)ParticleWindowLocation.Y - Particle.radius};
+//            vertices[vi + 1].position = {(float)ParticleWindowLocation.X + Particle.radius, (float)ParticleWindowLocation.Y - Particle.radius};
+//            vertices[vi + 2].position = {(float)ParticleWindowLocation.X + Particle.radius, (float)ParticleWindowLocation.Y + Particle.radius};
+//            vertices[vi + 3].position = {(float)ParticleWindowLocation.X - Particle.radius, (float)ParticleWindowLocation.Y + Particle.radius};
+//
+//            vertices[vi + 0].color = {Particle.color.r, Particle.color.g, Particle.color.b, 127};
+//            vertices[vi + 1].color = {Particle.color.r, Particle.color.g, Particle.color.b, 127};
+//            vertices[vi + 2].color = {Particle.color.r, Particle.color.g, Particle.color.b, 127};
+//            vertices[vi + 3].color = {Particle.color.r, Particle.color.g, Particle.color.b, 127};
+
             window.draw(particle);
 
 //            window.draw(CircleToVertices(particle));
 //
-            // CombineIntoVertexArray(CircleToVertices(particle), vertices);
+//            CombineIntoVertexArray(CircleToVertices(particle), vertices);
 //            CombineIntoVertexArray(CircleOutlineToVertices(particle), outline_vertices);
         }
 
-        // window.draw(vertices);
-        // window.draw(outline_vertices);
+//        particle_shader.setUniform("time", SafeDeltaTime);
+//        window.draw(vertices);
+
+//         window.draw(vertices);
+//         window.draw(outline_vertices);
 
 //            if (true) DrawQuadTree(SOLVER::QuadTree);
 
@@ -246,10 +265,10 @@ int main()
         ImGui::Text(std::string("FPS: " + std::to_string((int)std::ceil(CURRENT_FPS))).c_str());
         ImGui::Text(std::string("Avg FPS: " + std::to_string((int)std::floor(AVG_FPS))).c_str());
         ImGui::PlotLines("FPS Graph",std::vector<float>(FPS_Queue.begin(), FPS_Queue.end()).data(), (int)FPS_Queue.size());
-        ImGui::Spacing();
-        ImGui::Spacing();
-        ImGui::Spacing();
-        ImGui::Text(std::string("Vertices: " + std::to_string((int)vertices.getVertexCount())).c_str());
+//        ImGui::Spacing();
+//        ImGui::Spacing();
+//        ImGui::Spacing();
+//        ImGui::Text(std::string("Vertices: " + std::to_string((int)vertices.getVertexCount())).c_str());
         ImGui::Spacing();
         ImGui::Spacing();
         ImGui::Spacing();

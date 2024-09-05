@@ -48,6 +48,7 @@ add_executable(${PROJECT_NAME} main.cpp
         Engine/FreeList/FreeList.h
         Engine/SFML/ShapeConversions.h
         Engine/SFML/VertexArray.h
+        Engine/Shaders/Shaders.h
 )
 
 # Link Dependencies
