@@ -76,19 +76,18 @@ int main()
                 window.close();
             }
 
-            if (event.type == sf::Event::MouseMoved) {
-                if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-                    const IVector2 mouse_delta = IVector2(event.mouseMove.x, event.mouseMove.y) - last_mouse_pos;
-                    VIEWPORT::TranslateViewport(mouse_delta);
-                }
-                last_mouse_pos = IVector2(event.mouseMove.x, event.mouseMove.y);
-            }
+//            if (event.type == sf::Event::MouseMoved) {
+//                if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+//                    const IVector2 mouse_delta = IVector2(event.mouseMove.x, event.mouseMove.y) - last_mouse_pos;
+//                    VIEWPORT::TranslateViewport(mouse_delta);
+//                }
+//                last_mouse_pos = IVector2(event.mouseMove.x, event.mouseMove.y);
+//            }
         }
 
         window.clear(sf::Color::Black);
 
         ImGui::SFML::Update(window, DeltaTime);
-
 
         float CURRENT_FPS = (1 / (DeltaTime.asSeconds() <= 0 ? 1.f : DeltaTime.asSeconds()));
 
@@ -103,7 +102,6 @@ int main()
         }
         AVG_FPS /= 256;
 
-
         int ObjectComparisons = 0;
         RECT_PROF::OVERLAP_TESTS = 0;
         RECT_PROF::CONTAIN_TESTS = 0;
@@ -111,45 +109,6 @@ int main()
         QT_PROF::SEARCH_COUNT = 0;
 
         SOLVER::QuadTree.Cleanup();
-
-//            if (IsKeyDown(KEY_N)) {
-//                for (int i = 0; i < 8; i ++) {
-//                    Particle Water_Particle(FVector2(0.f, 0.f), SKYBLUE, 8);
-//                    // Water_Particle.acceleration = FVector2(0.f, -980.f);
-//                    Water_Particle.velocity = FVector2(0.f, 0.0f);
-//                    Water_Particle.elasticity = 0.25f;
-//                    Water_Particle.mass = 1.f;
-//
-//                    SOLVER::Particles.push_back(Water_Particle);
-//
-//                    SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(Water_Particle)});
-//                }
-//
-////            for (int i = 0; i < 3; i++) {
-////                Particle Small_Water_Particle (FVector2(0.f, 0.f), SKYBLUE, 4);
-////                Small_Water_Particle.acceleration = FVector2(0.f, -980.f);
-////                Small_Water_Particle.velocity = FVector2 (0.f, 0.0f);
-////                Small_Water_Particle.elasticity = 0.25f;
-////                Small_Water_Particle.mass = 1.f;
-////
-////                SOLVER::Particles.push_back(Small_Water_Particle);
-////
-////                SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(Small_Water_Particle)});
-////            }
-//            }
-
-//            if (IsKeyPressed(KEY_H)) {
-//                Particle StationaryParticle (FVector2(0.f, 0.f), GRAY, 64);
-//
-//                StationaryParticle.mass = 1000.f;
-//                StationaryParticle.velocity = FVector2(0.f, 0.f);
-//                StationaryParticle.acceleration = FVector2(0.f, -980.f);
-//                StationaryParticle.elasticity = 1.f;
-//
-//                SOLVER::Particles.push_back(StationaryParticle);
-//
-//                SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(StationaryParticle)});
-//            }
 
         for(int i = (GRID::Amount.X / -2); i <= (GRID::Amount.X / 2); i++) {
             int X = VIEWPORT::WorldToViewport(IVector2(i * GRID::Size, 0)).X;
