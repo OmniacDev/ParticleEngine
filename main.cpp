@@ -3,8 +3,6 @@
 #include <imgui.h>
 
 #include <string>
-#include <set>
-#include <array>
 #include <deque>
 
 #include "Engine/EngineGlobalVars.h"
@@ -14,7 +12,7 @@
 #include "Engine/Math/Viewport/Viewport.h"
 #include "Engine/Math/Rect/Rect.h"
 #include "Engine/SFML/ShapeConversions.h"
-#include "Engine/SFML/VertexArray.h"
+// #include "Engine/SFML/VertexArray.h"
 
 #include "Engine/Shaders/Shaders.h"
 
