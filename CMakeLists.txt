@@ -13,6 +13,24 @@ FetchContent_Declare(SFML
         SYSTEM)
 FetchContent_MakeAvailable(SFML)
 
+FetchContent_Declare(ImGui
+        GIT_REPOSITORY https://github.com/ocornut/imgui
+        GIT_TAG v1.89.9
+        GIT_SHALLOW ON
+        EXCLUDE_FROM_ALL
+        SYSTEM)
+FetchContent_MakeAvailable(ImGui)
+FetchContent_GetProperties(ImGui SOURCE_DIR IMGUI_DIR)
+
+set(IMGUI_SFML_FIND_SFML OFF)
+FetchContent_Declare(ImGui-SFML
+        GIT_REPOSITORY https://github.com/SFML/imgui-sfml
+        GIT_TAG 2.6.x
+        GIT_SHALLOW ON
+        EXCLUDE_FROM_ALL
+        SYSTEM)
+FetchContent_MakeAvailable(ImGui-SFML)
+
 # Our Project
 
 add_executable(${PROJECT_NAME} main.cpp
@@ -31,4 +49,4 @@ add_executable(${PROJECT_NAME} main.cpp
 )
 
 # Link Dependencies
-target_link_libraries(${PROJECT_NAME} sfml-graphics)
+target_link_libraries(${PROJECT_NAME} sfml-graphics ImGui-SFML::ImGui-SFML)

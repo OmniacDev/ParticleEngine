@@ -1,4 +1,6 @@
 #include <SFML/Graphics.hpp>
+#include <imgui-SFML.h>
+#include <imgui.h>
 
 #include <string>
 #include <set>
@@ -27,6 +29,10 @@ int main()
     window_settings.antialiasingLevel = 8;
 
     sf::RenderWindow window(sf::VideoMode(ENGINE::WindowWidth, ENGINE::WindowHeight), "[FOE] ParticleEngine", sf::Style::Default, window_settings);
+
+    if (!ImGui::SFML::Init(window)) {
+        return -1;
+    }
 
     sf::Clock delta_clock;
 
@@ -58,9 +64,14 @@ int main()
 
     while (window.isOpen())
     {
+        sf::Time DeltaTime = delta_clock.restart();
+        float SafeDeltaTime = DeltaTime.asSeconds() > 1.f / ENGINE::WindowMinFPS ? 1.f / ENGINE::WindowMinFPS : DeltaTime.asSeconds();
+
         sf::Event event{};
         while (window.pollEvent(event))
         {
+            ImGui::SFML::ProcessEvent(window, event);
+
             if (event.type == sf::Event::Closed) {
                 window.close();
             }
@@ -76,11 +87,10 @@ int main()
 
         window.clear(sf::Color::Black);
 
-        {
-            float DeltaTime = delta_clock.restart().asSeconds();
-            float SafeDeltaTime = DeltaTime > 1.f / ENGINE::WindowMinFPS ? 1.f / ENGINE::WindowMinFPS : DeltaTime;
+        ImGui::SFML::Update(window, DeltaTime);
 
-            int CURRENT_FPS = (int)(1 / (DeltaTime <= 0 ? 1.f : DeltaTime));
+        {
+            int CURRENT_FPS = (int)(1 / (DeltaTime.asSeconds() <= 0 ? 1.f : DeltaTime.asSeconds()));
 
             FPS_Arr[FPS_Arr_Index] = CURRENT_FPS;
             FPS_Arr_Index++;
@@ -202,7 +212,7 @@ int main()
             for (int i = 0; i < SOLVER::QuadTree.elements.Range(); i++) {
                 Particle& Particle = SOLVER::Particles[SOLVER::QuadTree.elements[i].index];
 
-                Particle.Update(DeltaTime);
+                Particle.Update(SafeDeltaTime);
 
                 SOLVER::QuadTree.Remove(i);
                 SOLVER::QuadTree.Insert({SOLVER::QuadTree.elements[i].index, GetParticleArea(Particle)});
@@ -258,6 +268,10 @@ int main()
 //            }
 //            Rect::DrawRect(VIEWPORT::WorldToViewport(SearchRect), SKYBLUE);
 
+            ImGui::Begin("Hello, world!");
+            ImGui::Button("Look at this pretty button");
+            ImGui::End();
+
 
             sf::RectangleShape info_rectangle(sf::Vector2f(200.f, 168.f));
             info_rectangle.setPosition(16.f, 16.f);
@@ -282,8 +296,11 @@ int main()
         }
 
         // end the current frame
+        ImGui::SFML::Render(window);
         window.display();
     }
+
+    ImGui::SFML::Shutdown();
 
     return 0;
 }
