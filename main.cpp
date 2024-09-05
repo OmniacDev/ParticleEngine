@@ -5,6 +5,7 @@
 #include <string>
 #include <set>
 #include <array>
+#include <deque>
 
 #include "Engine/EngineGlobalVars.h"
 
@@ -16,10 +17,9 @@
 bool FAST_RENDERING = false;
 bool RENDERING_ENABLED = true;
 
-int AVG_FPS = 0;
+float AVG_FPS = 0.f;
 
-std::array<int, 256> FPS_Arr;
-unsigned char FPS_Arr_Index = 0;
+std::deque<float> FPS_Queue;
 
 const FVector2 SearchSize (100.f, 100.f);
 
@@ -36,7 +36,7 @@ int main()
 
     sf::Clock delta_clock;
 
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 100; i++) {
         Particle Water_Particle (FVector2(0.f, 0.f), sf::Color(0, 191, 255), 8);
         Water_Particle.acceleration = FVector2(0.f, 0.f);
         Water_Particle.velocity = FVector2 (0.f, 0.0f);
@@ -89,26 +89,28 @@ int main()
 
         ImGui::SFML::Update(window, DeltaTime);
 
-        {
-            int CURRENT_FPS = (int)(1 / (DeltaTime.asSeconds() <= 0 ? 1.f : DeltaTime.asSeconds()));
 
-            FPS_Arr[FPS_Arr_Index] = CURRENT_FPS;
-            FPS_Arr_Index++;
+        float CURRENT_FPS = (1 / (DeltaTime.asSeconds() <= 0 ? 1.f : DeltaTime.asSeconds()));
 
-            AVG_FPS = 0;
-            for (const auto& FPS : FPS_Arr) {
-                AVG_FPS += FPS;
-            }
-            AVG_FPS /= 256;
+        if (FPS_Queue.size() >= 256) {
+            FPS_Queue.pop_front();
+        }
+        FPS_Queue.push_back(CURRENT_FPS);
+
+        AVG_FPS = 0.f;
+        for (const auto& FPS : FPS_Queue) {
+            AVG_FPS += FPS;
+        }
+        AVG_FPS /= 256;
 
 
-            int ObjectComparisons = 0;
-            RECT_PROF::OVERLAP_TESTS = 0;
-            RECT_PROF::CONTAIN_TESTS = 0;
-            SOLVER::COLLISION_COUNT = 0;
-            QT_PROF::SEARCH_COUNT = 0;
+        int ObjectComparisons = 0;
+        RECT_PROF::OVERLAP_TESTS = 0;
+        RECT_PROF::CONTAIN_TESTS = 0;
+        SOLVER::COLLISION_COUNT = 0;
+        QT_PROF::SEARCH_COUNT = 0;
 
-            SOLVER::QuadTree.Cleanup();
+        SOLVER::QuadTree.Cleanup();
 
 //            if (IsKeyDown(KEY_N)) {
 //                for (int i = 0; i < 8; i ++) {
@@ -149,103 +151,103 @@ int main()
 //                SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(StationaryParticle)});
 //            }
 
-            for(int i = (GRID::Amount.X / -2); i <= (GRID::Amount.X / 2); i++) {
-                int X = VIEWPORT::WorldToViewport(IVector2(i * GRID::Size, 0)).X;
-                int Y1 = VIEWPORT::WorldToViewport(IVector2(0, (GRID::Amount.Y / -2) * GRID::Size)).Y;
-                int Y2 = VIEWPORT::WorldToViewport(IVector2(0, (GRID::Amount.Y / 2) * GRID::Size)).Y;
+        for(int i = (GRID::Amount.X / -2); i <= (GRID::Amount.X / 2); i++) {
+            int X = VIEWPORT::WorldToViewport(IVector2(i * GRID::Size, 0)).X;
+            int Y1 = VIEWPORT::WorldToViewport(IVector2(0, (GRID::Amount.Y / -2) * GRID::Size)).Y;
+            int Y2 = VIEWPORT::WorldToViewport(IVector2(0, (GRID::Amount.Y / 2) * GRID::Size)).Y;
 
-                sf::Vertex one(sf::Vector2f((float)X, (float)Y1));
-                sf::Vertex two(sf::Vector2f((float)X, (float)Y2));
+            sf::Vertex one(sf::Vector2f((float)X, (float)Y1));
+            sf::Vertex two(sf::Vector2f((float)X, (float)Y2));
 
-                one.color = GRID::Color;
-                two.color = GRID::Color;
+            one.color = GRID::Color;
+            two.color = GRID::Color;
 
-                sf::Vertex line[] =
-                        {
-                                one,
-                                two
-                        };
+            sf::Vertex line[] =
+                    {
+                            one,
+                            two
+                    };
 
-                window.draw(line, 2, sf::Lines);
-            }
+            window.draw(line, 2, sf::Lines);
+        }
 
-            for(int i = (GRID::Amount.Y / -2); i <= (GRID::Amount.Y / 2); i++) {
-                int Y = VIEWPORT::WorldToViewport(IVector2(0, i * GRID::Size)).Y;
-                int X1 = VIEWPORT::WorldToViewport(IVector2(((GRID::Amount.X / -2)) * GRID::Size, 0)).X;
-                int X2 = VIEWPORT::WorldToViewport(IVector2(((GRID::Amount.X / 2)) * GRID::Size, 0)).X;
+        for(int i = (GRID::Amount.Y / -2); i <= (GRID::Amount.Y / 2); i++) {
+            int Y = VIEWPORT::WorldToViewport(IVector2(0, i * GRID::Size)).Y;
+            int X1 = VIEWPORT::WorldToViewport(IVector2(((GRID::Amount.X / -2)) * GRID::Size, 0)).X;
+            int X2 = VIEWPORT::WorldToViewport(IVector2(((GRID::Amount.X / 2)) * GRID::Size, 0)).X;
 
-                sf::Vertex one(sf::Vector2f((float)X1, (float)Y));
-                sf::Vertex two(sf::Vector2f((float)X2, (float)Y));
-                one.color = GRID::Color;
-                two.color = GRID::Color;
+            sf::Vertex one(sf::Vector2f((float)X1, (float)Y));
+            sf::Vertex two(sf::Vector2f((float)X2, (float)Y));
+            one.color = GRID::Color;
+            two.color = GRID::Color;
 
-                sf::Vertex line[] =
-                        {
-                                one,
-                                two
-                        };
+            sf::Vertex line[] =
+                    {
+                            one,
+                            two
+                    };
 
-                window.draw(line, 2, sf::Lines);
-            }
+            window.draw(line, 2, sf::Lines);
+        }
 
-            for (int substep = 0; substep < 4; substep++) {
-                for (int i = 0; i < SOLVER::QuadTree.nodes.Range(); i++) {
-                    if (SOLVER::QuadTree.nodes[i].num == -1) continue;
+        for (int substep = 0; substep < 4; substep++) {
+            for (int i = 0; i < SOLVER::QuadTree.nodes.Range(); i++) {
+                if (SOLVER::QuadTree.nodes[i].num == -1) continue;
 
-                    std::vector<int> indices;
-                    Quad::GetElementIndices(&SOLVER::QuadTree, &SOLVER::QuadTree.nodes[i], indices);
+                std::vector<int> indices;
+                Quad::GetElementIndices(&SOLVER::QuadTree, &SOLVER::QuadTree.nodes[i], indices);
 
-                    for (const int j : indices) {
-                        for (const int k : indices) {
-                            if (j == k) continue;
+                for (const int j : indices) {
+                    for (const int k : indices) {
+                        if (j == k) continue;
 
-                            Particle& FirstParticle = SOLVER::Particles[SOLVER::QuadTree.elements[j].index];
-                            Particle& SecondParticle = SOLVER::Particles[SOLVER::QuadTree.elements[k].index];
+                        Particle& FirstParticle = SOLVER::Particles[SOLVER::QuadTree.elements[j].index];
+                        Particle& SecondParticle = SOLVER::Particles[SOLVER::QuadTree.elements[k].index];
 
-                            SOLVER::SolveCollision(FirstParticle, SecondParticle);
-                            ObjectComparisons++;
-                        }
+                        SOLVER::SolveCollision(FirstParticle, SecondParticle);
+                        ObjectComparisons++;
                     }
                 }
             }
+        }
 
-            for (int i = 0; i < SOLVER::QuadTree.elements.Range(); i++) {
-                Particle& Particle = SOLVER::Particles[SOLVER::QuadTree.elements[i].index];
+        for (int i = 0; i < SOLVER::QuadTree.elements.Range(); i++) {
+            Particle& Particle = SOLVER::Particles[SOLVER::QuadTree.elements[i].index];
 
-                Particle.Update(SafeDeltaTime);
+            Particle.Update(SafeDeltaTime);
 
-                SOLVER::QuadTree.Remove(i);
-                SOLVER::QuadTree.Insert({SOLVER::QuadTree.elements[i].index, GetParticleArea(Particle)});
+            SOLVER::QuadTree.Remove(i);
+            SOLVER::QuadTree.Insert({SOLVER::QuadTree.elements[i].index, GetParticleArea(Particle)});
 
-                // Keep particle in bounds
-                if (Particle.position.X + Particle.radius > BOUNDS::X_POS) {
-                    Particle.position.X = BOUNDS::X_POS - Particle.radius;
-                    Particle.velocity.X = Particle.velocity.X * -Particle.elasticity;
-                }
-                if (Particle.position.X - Particle.radius < BOUNDS::X_NEG) {
-                    Particle.position.X = BOUNDS::X_NEG + Particle.radius;
-                    Particle.velocity.X = Particle.velocity.X * -Particle.elasticity;
-                }
-                if (Particle.position.Y + Particle.radius > BOUNDS::Y_POS) {
-                    Particle.position.Y = BOUNDS::Y_POS - Particle.radius;
-                    Particle.velocity.Y = Particle.velocity.Y * -Particle.elasticity;
-                }
-                if (Particle.position.Y - Particle.radius < BOUNDS::Y_NEG) {
-                    Particle.position.Y = BOUNDS::Y_NEG + Particle.radius;
-                    Particle.velocity.Y = Particle.velocity.Y * -Particle.elasticity;
-                }
-
-                // Draw Particle
-                IVector2 ParticleWindowLocation = VIEWPORT::WorldToViewport(IVector2((int)(Particle.position.X), (int)(Particle.position.Y)));
-
-                sf::CircleShape particle(Particle.radius);
-                particle.setPosition((float)ParticleWindowLocation.X - Particle.radius, (float)ParticleWindowLocation.Y - Particle.radius);
-                particle.setFillColor({Particle.color.r, Particle.color.g, Particle.color.b, 127});
-                particle.setOutlineThickness(1.0f);
-                particle.setOutlineColor({Particle.color.r, Particle.color.g, Particle.color.b, 255});
-
-                window.draw(particle);
+            // Keep particle in bounds
+            if (Particle.position.X + Particle.radius > BOUNDS::X_POS) {
+                Particle.position.X = BOUNDS::X_POS - Particle.radius;
+                Particle.velocity.X = Particle.velocity.X * -Particle.elasticity;
             }
+            if (Particle.position.X - Particle.radius < BOUNDS::X_NEG) {
+                Particle.position.X = BOUNDS::X_NEG + Particle.radius;
+                Particle.velocity.X = Particle.velocity.X * -Particle.elasticity;
+            }
+            if (Particle.position.Y + Particle.radius > BOUNDS::Y_POS) {
+                Particle.position.Y = BOUNDS::Y_POS - Particle.radius;
+                Particle.velocity.Y = Particle.velocity.Y * -Particle.elasticity;
+            }
+            if (Particle.position.Y - Particle.radius < BOUNDS::Y_NEG) {
+                Particle.position.Y = BOUNDS::Y_NEG + Particle.radius;
+                Particle.velocity.Y = Particle.velocity.Y * -Particle.elasticity;
+            }
+
+            // Draw Particle
+            IVector2 ParticleWindowLocation = VIEWPORT::WorldToViewport(IVector2((int)(Particle.position.X), (int)(Particle.position.Y)));
+
+            sf::CircleShape particle(Particle.radius-1.0f);
+            particle.setPosition((float)ParticleWindowLocation.X - Particle.radius, (float)ParticleWindowLocation.Y - Particle.radius);
+            particle.setFillColor({Particle.color.r, Particle.color.g, Particle.color.b, 127});
+            particle.setOutlineThickness(1.0f);
+            particle.setOutlineColor({Particle.color.r, Particle.color.g, Particle.color.b, 255});
+
+            window.draw(particle);
+        }
 
 //            if (true) DrawQuadTree(SOLVER::QuadTree);
 
@@ -268,32 +270,19 @@ int main()
 //            }
 //            Rect::DrawRect(VIEWPORT::WorldToViewport(SearchRect), SKYBLUE);
 
-            ImGui::Begin("Hello, world!");
-            ImGui::Button("Look at this pretty button");
-            ImGui::End();
-
-
-            sf::RectangleShape info_rectangle(sf::Vector2f(200.f, 168.f));
-            info_rectangle.setPosition(16.f, 16.f);
-            info_rectangle.setFillColor({80, 80, 80, 127});
-            info_rectangle.setOutlineThickness(1.f);
-            info_rectangle.setOutlineColor({80, 80, 80, 255});
-
-            window.draw(info_rectangle);
-
-//            DrawRectangle(16, 16, 200, 168, {80, 80, 80, 127});
-//            DrawRectangleLines(16, 16, 200, 168, DARKGRAY);
-//
-//            DrawText(std::string("FPS: " + std::to_string((int)std::ceil(CURRENT_FPS))).c_str(), 32, 32, 8, RAYWHITE);
-//            DrawText(std::string("Avg FPS: " + std::to_string((int)std::floor(AVG_FPS))).c_str(), 32, 48, 8, RAYWHITE);
-//
-//            DrawText(std::string("Objects: " + std::to_string((int)SOLVER::Particles.size())).c_str(), 32, 64, 8, RAYWHITE);
-//            DrawText(std::string("Comparisons: " + std::to_string((int)ObjectComparisons)).c_str(), 32, 80, 8, YELLOW);
-//            DrawText(std::string("Collisions: " + std::to_string((int)SOLVER::COLLISION_COUNT)).c_str(), 32, 96, 8, ORANGE);
-//            DrawText(std::string("QuadTree Searches: " + std::to_string(QT_PROF::SEARCH_COUNT)).c_str(), 32, 128, 8, RAYWHITE);
-//            DrawText(std::string("Overlap Tests: " + std::to_string((int)RECT_PROF::OVERLAP_TESTS)).c_str(), 32, 144, 8, RAYWHITE);
-//            DrawText(std::string("Contain Tests: " + std::to_string((int)RECT_PROF::CONTAIN_TESTS)).c_str(), 32, 160, 8, RAYWHITE);
-        }
+        ImGui::Begin("Debug Info");
+        ImGui::Text(std::string("FPS: " + std::to_string((int)std::ceil(CURRENT_FPS))).c_str());
+        ImGui::Text(std::string("Avg FPS: " + std::to_string((int)std::floor(AVG_FPS))).c_str());
+        ImGui::PlotLines("FPS Graph",std::vector<float>(FPS_Queue.begin(), FPS_Queue.end()).data(), (int)FPS_Queue.size());
+        ImGui::Spacing();
+        ImGui::Text(std::string("Objects: " + std::to_string((int)SOLVER::Particles.size())).c_str());
+        ImGui::Text(std::string("Comparisons: " + std::to_string((int)ObjectComparisons)).c_str());
+        ImGui::Text(std::string("Collisions: " + std::to_string((int)SOLVER::COLLISION_COUNT)).c_str());
+        ImGui::Text(std::string("QuadTree Searches: " + std::to_string(QT_PROF::SEARCH_COUNT)).c_str());
+        ImGui::Spacing();
+        ImGui::Text(std::string("Overlap Tests: " + std::to_string((int)RECT_PROF::OVERLAP_TESTS)).c_str());
+        ImGui::Text(std::string("Contain Tests: " + std::to_string((int)RECT_PROF::CONTAIN_TESTS)).c_str());
+        ImGui::End();
 
         // end the current frame
         ImGui::SFML::Render(window);
