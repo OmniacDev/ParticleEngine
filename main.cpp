@@ -275,13 +275,61 @@ int main()
         ImGui::Text(std::string("Avg FPS: " + std::to_string((int)std::floor(AVG_FPS))).c_str());
         ImGui::PlotLines("FPS Graph",std::vector<float>(FPS_Queue.begin(), FPS_Queue.end()).data(), (int)FPS_Queue.size());
         ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Spacing();
         ImGui::Text(std::string("Objects: " + std::to_string((int)SOLVER::Particles.size())).c_str());
         ImGui::Text(std::string("Comparisons: " + std::to_string((int)ObjectComparisons)).c_str());
         ImGui::Text(std::string("Collisions: " + std::to_string((int)SOLVER::COLLISION_COUNT)).c_str());
         ImGui::Text(std::string("QuadTree Searches: " + std::to_string(QT_PROF::SEARCH_COUNT)).c_str());
         ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Spacing();
         ImGui::Text(std::string("Overlap Tests: " + std::to_string((int)RECT_PROF::OVERLAP_TESTS)).c_str());
         ImGui::Text(std::string("Contain Tests: " + std::to_string((int)RECT_PROF::CONTAIN_TESTS)).c_str());
+        ImGui::End();
+
+        ImGui::Begin("Spawn Particle");
+        static float particle_radius = 8.f;
+        static float particle_mass = 100.f;
+        static float particle_color[4] = {0.f / 255, 191.f / 255, 255.f / 255, 255.f / 255};
+        static float particle_position[2] = { 0.f, 0.f };
+        static float particle_velocity[2] = { 0.f, 0.f};
+        static float particle_acceleration[2] = { 0.f, -980.f };
+        ImGui::InputFloat("Radius", &particle_radius);
+        ImGui::InputFloat("Mass", &particle_mass);
+        ImGui::InputFloat2("Position", particle_position);
+        ImGui::InputFloat2("Velocity", particle_velocity);
+        ImGui::InputFloat2("Acceleration", particle_acceleration);
+        ImGui::ColorEdit4("Color", particle_color);
+        ImGui::Button("Spawn One");
+        if (ImGui::IsItemClicked()) {
+            sf::Color color = sf::Color((int)(particle_color[0] * 255), (int)(particle_color[1] * 255), (int)(particle_color[2] * 255));
+            Particle particle (FVector2(particle_position[0], particle_position[1]), color, particle_radius);
+
+            particle.mass = particle_mass;
+            particle.velocity = FVector2(particle_velocity[0], particle_velocity[1]);
+            particle.acceleration = FVector2(particle_acceleration[0], particle_acceleration[1]);
+            particle.elasticity = 1.f;
+
+            SOLVER::Particles.push_back(particle);
+
+            SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(particle)});
+        }
+        ImGui::Button("Spawn Multiple");
+        if (ImGui::IsItemActive()) {
+            sf::Color color = sf::Color((int)(particle_color[0] * 255), (int)(particle_color[1] * 255), (int)(particle_color[2] * 255));
+            Particle particle (FVector2(particle_position[0], particle_position[1]), color, particle_radius);
+
+            particle.mass = particle_mass;
+            particle.velocity = FVector2(particle_velocity[0], particle_velocity[1]);
+            particle.acceleration = FVector2(particle_acceleration[0], particle_acceleration[1]);
+            particle.elasticity = 1.f;
+
+            SOLVER::Particles.push_back(particle);
+
+            SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(particle)});
+        }
+
         ImGui::End();
 
         // end the current frame
