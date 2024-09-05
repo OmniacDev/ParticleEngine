@@ -14,7 +14,7 @@
 #include "Engine/SFML/ShapeConversions.h"
 // #include "Engine/SFML/VertexArray.h"
 
-// #include "Engine/Shaders/Shaders.h"
+#include "Engine/Shaders/Shaders.h"
 
 bool FAST_RENDERING = false;
 bool RENDERING_ENABLED = true;
@@ -27,8 +27,8 @@ const FVector2 SearchSize (100.f, 100.f);
 
 int main()
 {
-//    sf::Shader particle_shader;
-//    particle_shader.loadFromMemory(particle_vs, particle_fs);
+    sf::Shader particle_shader;
+    particle_shader.loadFromMemory(particle_vs, particle_fs);
 
     sf::ContextSettings window_settings;
     window_settings.antialiasingLevel = 8;
@@ -175,7 +175,7 @@ int main()
             }
         }
 
-        // sf::VertexArray vertices(sf::PrimitiveType::Quads, 4 * SOLVER::Particles.size());
+        sf::VertexArray vertices(sf::PrimitiveType::Quads, 4 * SOLVER::Particles.size());
 
         for (int i = 0; i < SOLVER::QuadTree.elements.Range(); i++) {
             Particle& Particle = SOLVER::Particles[SOLVER::QuadTree.elements[i].index];
@@ -212,19 +212,24 @@ int main()
             particle.setOutlineThickness(1.0f);
             particle.setOutlineColor({Particle.color.r, Particle.color.g, Particle.color.b, 255});
 
-//            const int vi = i * 4;
-//
-//            vertices[vi + 0].position = {(float)ParticleWindowLocation.X - Particle.radius, (float)ParticleWindowLocation.Y - Particle.radius};
-//            vertices[vi + 1].position = {(float)ParticleWindowLocation.X + Particle.radius, (float)ParticleWindowLocation.Y - Particle.radius};
-//            vertices[vi + 2].position = {(float)ParticleWindowLocation.X + Particle.radius, (float)ParticleWindowLocation.Y + Particle.radius};
-//            vertices[vi + 3].position = {(float)ParticleWindowLocation.X - Particle.radius, (float)ParticleWindowLocation.Y + Particle.radius};
-//
-//            vertices[vi + 0].color = {Particle.color.r, Particle.color.g, Particle.color.b, 127};
-//            vertices[vi + 1].color = {Particle.color.r, Particle.color.g, Particle.color.b, 127};
-//            vertices[vi + 2].color = {Particle.color.r, Particle.color.g, Particle.color.b, 127};
-//            vertices[vi + 3].color = {Particle.color.r, Particle.color.g, Particle.color.b, 127};
+            const int vi = i * 4;
 
-            window.draw(particle);
+            vertices[vi + 0].position = {(float)ParticleWindowLocation.X - Particle.radius, (float)ParticleWindowLocation.Y - Particle.radius};
+            vertices[vi + 1].position = {(float)ParticleWindowLocation.X + Particle.radius, (float)ParticleWindowLocation.Y - Particle.radius};
+            vertices[vi + 2].position = {(float)ParticleWindowLocation.X + Particle.radius, (float)ParticleWindowLocation.Y + Particle.radius};
+            vertices[vi + 3].position = {(float)ParticleWindowLocation.X - Particle.radius, (float)ParticleWindowLocation.Y + Particle.radius};
+
+            vertices[vi + 0].texCoords = { 0.f, 0.f };
+            vertices[vi + 1].texCoords = { 1.f, 0.f };
+            vertices[vi + 2].texCoords = { 1.f, 1.f };
+            vertices[vi + 3].texCoords = { 0.f, 1.f };
+
+            vertices[vi + 0].color = {Particle.color.r, Particle.color.g, Particle.color.b, 127};
+            vertices[vi + 1].color = {Particle.color.r, Particle.color.g, Particle.color.b, 127};
+            vertices[vi + 2].color = {Particle.color.r, Particle.color.g, Particle.color.b, 127};
+            vertices[vi + 3].color = {Particle.color.r, Particle.color.g, Particle.color.b, 127};
+
+            // window.draw(particle);
 
 //            window.draw(CircleToVertices(particle));
 //
@@ -232,8 +237,8 @@ int main()
 //            CombineIntoVertexArray(CircleOutlineToVertices(particle), outline_vertices);
         }
 
-//        particle_shader.setUniform("time", SafeDeltaTime);
-//        window.draw(vertices);
+        particle_shader.setUniform("time", SafeDeltaTime);
+        window.draw(vertices);
 
 //         window.draw(vertices);
 //         window.draw(outline_vertices);
