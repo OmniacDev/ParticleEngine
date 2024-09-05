@@ -14,7 +14,7 @@
 #include "Engine/SFML/ShapeConversions.h"
 // #include "Engine/SFML/VertexArray.h"
 
-#include "Engine/Shaders/Shaders.h"
+// #include "Engine/Shaders/Shaders.h"
 
 bool FAST_RENDERING = false;
 bool RENDERING_ENABLED = true;
@@ -27,8 +27,8 @@ const FVector2 SearchSize (100.f, 100.f);
 
 int main()
 {
-    sf::Shader particle_shader;
-    particle_shader.loadFromMemory(particle_vs, particle_fs);
+//    sf::Shader particle_shader;
+//    particle_shader.loadFromMemory(particle_vs, particle_fs);
 
     sf::ContextSettings window_settings;
     window_settings.antialiasingLevel = 8;
