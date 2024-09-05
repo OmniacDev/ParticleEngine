@@ -46,6 +46,8 @@ add_executable(${PROJECT_NAME} main.cpp
         Physics/QuadTree/QuadTree.h
         Engine/Math/Rect/Rect.h
         Engine/FreeList/FreeList.h
+        Engine/SFML/ShapeConversions.h
+        Engine/SFML/VertexArray.h
 )
 
 # Link Dependencies

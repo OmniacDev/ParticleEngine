@@ -13,6 +13,8 @@
 #include "Physics/Solver.h"
 #include "Engine/Math/Viewport/Viewport.h"
 #include "Engine/Math/Rect/Rect.h"
+#include "Engine/SFML/ShapeConversions.h"
+#include "Engine/SFML/VertexArray.h"
 
 bool FAST_RENDERING = false;
 bool RENDERING_ENABLED = true;
@@ -170,6 +172,9 @@ int main()
             }
         }
 
+        sf::VertexArray vertices{sf::PrimitiveType::Triangles};
+        sf::VertexArray outline_vertices{sf::PrimitiveType::TriangleStrip};
+
         for (int i = 0; i < SOLVER::QuadTree.elements.Range(); i++) {
             Particle& Particle = SOLVER::Particles[SOLVER::QuadTree.elements[i].index];
 
@@ -206,7 +211,15 @@ int main()
             particle.setOutlineColor({Particle.color.r, Particle.color.g, Particle.color.b, 255});
 
             window.draw(particle);
+
+//            window.draw(CircleToVertices(particle));
+//
+            // CombineIntoVertexArray(CircleToVertices(particle), vertices);
+//            CombineIntoVertexArray(CircleOutlineToVertices(particle), outline_vertices);
         }
+
+        // window.draw(vertices);
+        // window.draw(outline_vertices);
 
 //            if (true) DrawQuadTree(SOLVER::QuadTree);
 
@@ -233,6 +246,10 @@ int main()
         ImGui::Text(std::string("FPS: " + std::to_string((int)std::ceil(CURRENT_FPS))).c_str());
         ImGui::Text(std::string("Avg FPS: " + std::to_string((int)std::floor(AVG_FPS))).c_str());
         ImGui::PlotLines("FPS Graph",std::vector<float>(FPS_Queue.begin(), FPS_Queue.end()).data(), (int)FPS_Queue.size());
+        ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Text(std::string("Vertices: " + std::to_string((int)vertices.getVertexCount())).c_str());
         ImGui::Spacing();
         ImGui::Spacing();
         ImGui::Spacing();
