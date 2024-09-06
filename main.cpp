@@ -81,6 +81,10 @@ int main()
                 window.close();
             }
 
+            if (event.type == sf::Event::Resized) {
+                window.setView(sf::View(sf::FloatRect (0.f, 0.f, (float)event.size.width, (float)event.size.height)));
+            }
+
 //            if (event.type == sf::Event::MouseMoved) {
 //                if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
 //                    const IVector2 mouse_delta = IVector2(event.mouseMove.x, event.mouseMove.y) - last_mouse_pos;
