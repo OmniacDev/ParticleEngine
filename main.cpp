@@ -210,10 +210,10 @@ int main()
             // Draw Particle
             IVector2 ParticleWindowLocation = VIEWPORT::WorldToViewport(IVector2((int)(Particle.position.X), (int)(Particle.position.Y)));
 
-            sf::CircleShape particle(Particle.radius-1.0f);
+            sf::CircleShape particle(Particle.radius);
             particle.setPosition((float)ParticleWindowLocation.X - Particle.radius, (float)ParticleWindowLocation.Y - Particle.radius);
             particle.setFillColor({Particle.color.r, Particle.color.g, Particle.color.b, 127});
-            particle.setOutlineThickness(1.0f);
+            particle.setOutlineThickness(-1.0f);
             particle.setOutlineColor({Particle.color.r, Particle.color.g, Particle.color.b, 255});
 
 //            const int vi = i * 4;
