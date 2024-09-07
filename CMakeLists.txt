@@ -46,10 +46,15 @@ add_executable(${PROJECT_NAME} main.cpp
         Physics/QuadTree/QuadTree.h
         Engine/Math/Rect/Rect.h
         Engine/FreeList/FreeList.h
-        Engine/SFML/ShapeConversions.h
-        Engine/SFML/VertexArray.h
         Engine/Shaders/Shaders.h
 )
 
 # Link Dependencies
 target_link_libraries(${PROJECT_NAME} sfml-graphics ImGui-SFML::ImGui-SFML)
+
+# Copy Resources to binary directory
+add_custom_command(
+        TARGET ${PROJECT_NAME}
+        COMMENT "Copy Resources"
+        PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/Resources $<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources
+        VERBATIM)

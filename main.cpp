@@ -11,7 +11,6 @@
 #include "Physics/Solver.h"
 #include "Engine/Math/Viewport/Viewport.h"
 #include "Engine/Math/Rect/Rect.h"
-#include "Engine/SFML/ShapeConversions.h"
 // #include "Engine/SFML/VertexArray.h"
 
 // #include "Engine/Shaders/Shaders.h"
@@ -29,6 +28,13 @@ int main()
 {
 //    sf::Shader particle_shader;
 //    particle_shader.loadFromMemory(particle_vs, particle_fs);
+
+    sf::Texture particle_texture;
+    particle_texture.loadFromFile("Resources/circle.png");
+    particle_texture.generateMipmap();
+    particle_texture.setSmooth(true);
+
+    sf::VertexArray particle_vertices(sf::Quads);
 
     sf::ContextSettings window_settings;
     window_settings.antialiasingLevel = 8;
@@ -158,7 +164,8 @@ int main()
             }
         }
 
-        sf::VertexArray vertices(sf::PrimitiveType::Quads, 4 * SOLVER::Particles.size());
+        particle_vertices.resize(SOLVER::QuadTree.elements.Range() * 4);
+        const float texture_size = 1024.f;
 
         for (int i = 0; i < SOLVER::QuadTree.elements.Range(); i++) {
             Particle& Particle = SOLVER::Particles[SOLVER::QuadTree.elements[i].index];
@@ -189,44 +196,34 @@ int main()
             // Draw Particle
             IVector2 ParticleWindowLocation = VIEWPORT::WorldToViewport(IVector2((int)(Particle.position.X), (int)(Particle.position.Y)));
 
-            sf::CircleShape particle(Particle.radius);
-            particle.setPosition((float)ParticleWindowLocation.X - Particle.radius, (float)ParticleWindowLocation.Y - Particle.radius);
-            particle.setFillColor({Particle.color.r, Particle.color.g, Particle.color.b, 127});
-            particle.setOutlineThickness(-1.0f);
-            particle.setOutlineColor({Particle.color.r, Particle.color.g, Particle.color.b, 255});
+            const uint32 idx = i << 2;
 
-//            const int vi = i * 4;
-//
-//            vertices[vi + 0].position = {(float)ParticleWindowLocation.X - Particle.radius, (float)ParticleWindowLocation.Y - Particle.radius};
-//            vertices[vi + 1].position = {(float)ParticleWindowLocation.X + Particle.radius, (float)ParticleWindowLocation.Y - Particle.radius};
-//            vertices[vi + 2].position = {(float)ParticleWindowLocation.X + Particle.radius, (float)ParticleWindowLocation.Y + Particle.radius};
-//            vertices[vi + 3].position = {(float)ParticleWindowLocation.X - Particle.radius, (float)ParticleWindowLocation.Y + Particle.radius};
-//
-//            vertices[vi + 0].texCoords = { 0.f, 0.f };
-//            vertices[vi + 1].texCoords = { 1.f, 0.f };
-//            vertices[vi + 2].texCoords = { 1.f, 1.f };
-//            vertices[vi + 3].texCoords = { 0.f, 1.f };
-//
-//            vertices[vi + 0].color = {Particle.color.r, Particle.color.g, Particle.color.b, 127};
-//            vertices[vi + 1].color = {Particle.color.r, Particle.color.g, Particle.color.b, 127};
-//            vertices[vi + 2].color = {Particle.color.r, Particle.color.g, Particle.color.b, 127};
-//            vertices[vi + 3].color = {Particle.color.r, Particle.color.g, Particle.color.b, 127};
+            particle_vertices[idx + 0].position = {(float)ParticleWindowLocation.X - Particle.radius, (float)ParticleWindowLocation.Y - Particle.radius };
+            particle_vertices[idx + 1].position = {(float)ParticleWindowLocation.X + Particle.radius, (float)ParticleWindowLocation.Y - Particle.radius };
+            particle_vertices[idx + 2].position = {(float)ParticleWindowLocation.X + Particle.radius, (float)ParticleWindowLocation.Y + Particle.radius };
+            particle_vertices[idx + 3].position = {(float)ParticleWindowLocation.X - Particle.radius, (float)ParticleWindowLocation.Y + Particle.radius };
+            particle_vertices[idx + 0].texCoords = {0.0f        , 0.0f};
+            particle_vertices[idx + 1].texCoords = {texture_size, 0.0f};
+            particle_vertices[idx + 2].texCoords = {texture_size, texture_size};
+            particle_vertices[idx + 3].texCoords = {0.0f        , texture_size};
 
-            window.draw(particle);
-
-//            window.draw(CircleToVertices(particle));
-//
-//            CombineIntoVertexArray(CircleToVertices(particle), vertices);
-//            CombineIntoVertexArray(CircleOutlineToVertices(particle), outline_vertices);
+            const sf::Color color = Particle.color;
+            particle_vertices[idx + 0].color = color;
+            particle_vertices[idx + 1].color = color;
+            particle_vertices[idx + 2].color = color;
+            particle_vertices[idx + 3].color = color;
         }
+
+        sf::RenderStates particle_r_state;
+        particle_r_state.texture = &particle_texture;
+        
+        window.draw(particle_vertices, particle_r_state);
 
 //        particle_shader.setUniform("time", SafeDeltaTime);
 //        window.draw(vertices);
 
 //         window.draw(vertices);
 //         window.draw(outline_vertices);
-
-//            if (true) DrawQuadTree(SOLVER::QuadTree);
 
 //            const IVector2 MouseWorldPos = VIEWPORT::ViewportToWorld(IVector2(GetMouseX(), GetMouseY()));
 //            const FVector2 MouseFloatWorldPos ((float)MouseWorldPos.X, (float)MouseWorldPos.Y);
@@ -246,6 +243,8 @@ int main()
 //                DrawCircleLines(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.radius,{0, 158, 47, 255});
 //            }
 //            Rect::DrawRect(VIEWPORT::WorldToViewport(SearchRect), SKYBLUE);
+
+        static bool draw_quad = false;
 
         ImGui::Begin("Debug Info");
         ImGui::Text(std::string("FPS: " + std::to_string((int)std::ceil(CURRENT_FPS))).c_str());
@@ -267,6 +266,10 @@ int main()
         ImGui::Spacing();
         ImGui::Text(std::string("Overlap Tests: " + std::to_string((int)RECT_PROF::OVERLAP_TESTS)).c_str());
         ImGui::Text(std::string("Contain Tests: " + std::to_string((int)RECT_PROF::CONTAIN_TESTS)).c_str());
+        ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Checkbox("Draw QuadTree", &draw_quad);
         ImGui::End();
 
         ImGui::Begin("Spawn Particle");
@@ -284,7 +287,7 @@ int main()
         ImGui::ColorEdit4("Color", particle_color);
         ImGui::Button("Spawn One");
         if (ImGui::IsItemClicked()) {
-            sf::Color color = sf::Color((int)(particle_color[0] * 255), (int)(particle_color[1] * 255), (int)(particle_color[2] * 255));
+            sf::Color color = sf::Color((int)(particle_color[0] * 255), (int)(particle_color[1] * 255), (int)(particle_color[2] * 255), (int)(particle_color[3] * 255));
             Particle particle (FVector2(particle_position[0], particle_position[1]), color, particle_radius);
 
             particle.mass = particle_mass;
@@ -298,7 +301,7 @@ int main()
         }
         ImGui::Button("Spawn Multiple");
         if (ImGui::IsItemActive()) {
-            sf::Color color = sf::Color((int)(particle_color[0] * 255), (int)(particle_color[1] * 255), (int)(particle_color[2] * 255));
+            sf::Color color = sf::Color((int)(particle_color[0] * 255), (int)(particle_color[1] * 255), (int)(particle_color[2] * 255), (int)(particle_color[3] * 255));
             Particle particle (FVector2(particle_position[0], particle_position[1]), color, particle_radius);
 
             particle.mass = particle_mass;
@@ -310,8 +313,11 @@ int main()
 
             SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(particle)});
         }
-
         ImGui::End();
+
+        if (draw_quad) {
+
+        }
 
         // end the current frame
         ImGui::SFML::Render(window);
