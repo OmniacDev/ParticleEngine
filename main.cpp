@@ -167,12 +167,13 @@ int main()
         const float texture_size = 1024.f;
 
         for (int i = 0; i < SOLVER::QuadTree.elements.Range(); i++) {
-            Particle& Particle = SOLVER::Particles[SOLVER::QuadTree.elements[i].index];
+            const int index = SOLVER::QuadTree.elements[i].index;
+            Particle& Particle = SOLVER::Particles[index];
 
             Particle.Update(SafeDeltaTime);
 
             SOLVER::QuadTree.Remove(i);
-            SOLVER::QuadTree.Insert({SOLVER::QuadTree.elements[i].index, GetParticleArea(Particle)});
+            SOLVER::QuadTree.Insert({index, GetParticleArea(Particle)});
 
             // Keep particle in bounds
             if (Particle.position.X + Particle.radius > BOUNDS::X_POS) {

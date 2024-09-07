@@ -73,8 +73,8 @@ namespace Quad {
         void Remove(const int element_index) {
             std::vector<NodeData> leaves = FindLeaves(elements[element_index].rect, root_data);
 
-            for (const auto& Leaf : leaves) {
-                LeafRemove(element_index, Leaf);
+            for (const auto& leaf : leaves) {
+                LeafRemove(element_index, leaf);
             }
 
             elements.Erase(element_index);
@@ -88,9 +88,10 @@ namespace Quad {
 
                 while (!queue.empty()) {
                     const int index = queue.back();
-                    queue.pop_back();
 
                     Node* node = &nodes[index];
+
+                    queue.pop_back();
 
                     int empty_children = 0;
                     for (int i = 0; i < 4; i++) {
@@ -168,10 +169,11 @@ namespace Quad {
             while (!queue.empty())
             {
                 const NodeData queue_node_data = queue.back();
-                queue.pop_back();
 
                 // If this node is a leaf, insert it to the list.
                 Node* node = &nodes[queue_node_data.index];
+
+                queue.pop_back();
 
                 if (node->num != -1) {
                     leaves.push_back(queue_node_data);
@@ -181,7 +183,7 @@ namespace Quad {
                     const std::array<Rect, 4> child_rects = Subdivide(queue_node_data.rect);
 
                     for (int i = 0; i < 4; i++) {
-                        if (rect.Overlaps(child_rects[i])) {
+                        if (child_rects[i].Overlaps(rect)) {
                             NodeData child_node_data = {node->start_index + i, queue_node_data.depth + 1, child_rects[i]};
                             queue.push_back(child_node_data);
                         }
