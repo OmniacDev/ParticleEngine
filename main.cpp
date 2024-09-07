@@ -83,6 +83,7 @@ int main()
 
             if (event.type == sf::Event::Resized) {
                 window.setView(sf::View(sf::FloatRect (0.f, 0.f, (float)event.size.width, (float)event.size.height)));
+                VIEWPORT::Offset = IVector2((int)window.getView().getCenter().x, (int)window.getView().getCenter().y);
             }
 
 //            if (event.type == sf::Event::MouseMoved) {
