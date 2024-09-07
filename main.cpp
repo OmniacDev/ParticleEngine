@@ -100,7 +100,6 @@ int main()
         RECT_PROF::OVERLAP_TESTS = 0;
         RECT_PROF::CONTAIN_TESTS = 0;
         SOLVER::COLLISION_COUNT = 0;
-        QT_PROF::SEARCH_COUNT = 0;
 
         SOLVER::QuadTree.Cleanup();
 
@@ -260,7 +259,6 @@ int main()
         ImGui::Text(std::string("Objects: " + std::to_string((int)SOLVER::Particles.size())).c_str());
         ImGui::Text(std::string("Comparisons: " + std::to_string((int)ObjectComparisons)).c_str());
         ImGui::Text(std::string("Collisions: " + std::to_string((int)SOLVER::COLLISION_COUNT)).c_str());
-        ImGui::Text(std::string("QuadTree Searches: " + std::to_string(QT_PROF::SEARCH_COUNT)).c_str());
         ImGui::Spacing();
         ImGui::Spacing();
         ImGui::Spacing();
@@ -316,7 +314,32 @@ int main()
         ImGui::End();
 
         if (draw_quad) {
+            const auto& leaves = SOLVER::QuadTree.FindLeaves(SOLVER::QuadTree.root_data.rect, SOLVER::QuadTree.root_data);
 
+            for (const auto& leaf : leaves) {
+                const IVector2 viewport_pos = VIEWPORT::WorldToViewport(IVector2((int)leaf.rect.Position.X, (int)leaf.rect.Position.Y));
+
+                sf::RectangleShape leaf_shape;
+                leaf_shape.setSize({leaf.rect.Size.X,leaf.rect.Size.Y});
+                leaf_shape.setPosition((float)viewport_pos.X, (float)viewport_pos.Y - leaf.rect.Size.Y);
+                leaf_shape.setFillColor({0, 0, 0, 0});
+                leaf_shape.setOutlineThickness(-1.0f);
+
+                if (SOLVER::QuadTree.nodes[leaf.index].num > 4) {
+                    leaf_shape.setOutlineColor({255, 0, 0, 127});
+                }
+                else if (SOLVER::QuadTree.nodes[leaf.index].num > 1) {
+                    leaf_shape.setOutlineColor({255, 255, 0, 127});
+                }
+                else if (SOLVER::QuadTree.nodes[leaf.index].num == 1) {
+                    leaf_shape.setOutlineColor({0, 255, 0, 127});
+                }
+                else {
+                    leaf_shape.setOutlineColor({0, 255, 255, 64});
+                }
+
+                window.draw(leaf_shape);
+            }
         }
 
         // end the current frame

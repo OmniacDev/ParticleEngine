@@ -15,15 +15,7 @@
 #include "../../Engine/FreeList/FreeList.h"
 #include "../Solver.h"
 
-const int MAX_DEPTH = 8;
-const int MAX_CHILDREN = 4;
-
-namespace QT_PROF {
-    inline int SEARCH_COUNT = 0;
-}
-
 namespace Quad {
-
     const int MAX_CHILDREN = 4;
     const int MAX_DEPTH = 4;
 
