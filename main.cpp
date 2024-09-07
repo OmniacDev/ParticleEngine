@@ -65,7 +65,7 @@ int main()
         }
     }
 
-    // IVector2 last_mouse_pos = IVector2(0, 0);
+    IVector2 last_mouse_pos = IVector2(0, 0);
 
     while (window.isOpen())
     {
@@ -88,13 +88,13 @@ int main()
                 VIEWPORT::TranslateViewport(IVector2((int)view_translation.x, (int)view_translation.y));
             }
 
-//            if (event.type == sf::Event::MouseMoved) {
-//                if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-//                    const IVector2 mouse_delta = IVector2(event.mouseMove.x, event.mouseMove.y) - last_mouse_pos;
-//                    VIEWPORT::TranslateViewport(mouse_delta);
-//                }
-//                last_mouse_pos = IVector2(event.mouseMove.x, event.mouseMove.y);
-//            }
+            if (event.type == sf::Event::MouseMoved) {
+                if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
+                    const IVector2 mouse_delta = IVector2(event.mouseMove.x, event.mouseMove.y) - last_mouse_pos;
+                    VIEWPORT::TranslateViewport(mouse_delta);
+                }
+                last_mouse_pos = IVector2(event.mouseMove.x, event.mouseMove.y);
+            }
         }
 
         window.clear(sf::Color::Black);
