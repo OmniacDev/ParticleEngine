@@ -82,8 +82,10 @@ int main()
             }
 
             if (event.type == sf::Event::Resized) {
+                const sf::View old_view = window.getView();
                 window.setView(sf::View(sf::FloatRect (0.f, 0.f, (float)event.size.width, (float)event.size.height)));
-                VIEWPORT::Offset = IVector2((int)window.getView().getCenter().x, (int)window.getView().getCenter().y);
+                const sf::Vector2f view_translation = window.getView().getCenter() - old_view.getCenter();
+                VIEWPORT::TranslateViewport(IVector2((int)view_translation.x, (int)view_translation.y));
             }
 
 //            if (event.type == sf::Event::MouseMoved) {
