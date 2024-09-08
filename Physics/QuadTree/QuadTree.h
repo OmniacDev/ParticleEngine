@@ -1,8 +1,5 @@
 #pragma once
 
-#include <immintrin.h>
-#include <avxintrin.h>
-
 #include <vector>
 #include <array>
 #include <memory>
