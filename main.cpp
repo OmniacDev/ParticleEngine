@@ -54,6 +54,8 @@ int main()
         sf::Time DeltaTime = delta_clock.restart();
         float SafeDeltaTime = DeltaTime.asSeconds() > 1.f / ENGINE::WindowMinFPS ? 1.f / ENGINE::WindowMinFPS : DeltaTime.asSeconds();
 
+
+
         sf::Event event{};
         while (window.pollEvent(event))
         {
@@ -225,30 +227,10 @@ int main()
 //         window.draw(vertices);
 //         window.draw(outline_vertices);
 
-//            const IVector2 MouseWorldPos = VIEWPORT::ViewportToWorld(IVector2(GetMouseX(), GetMouseY()));
-//            const FVector2 MouseFloatWorldPos ((float)MouseWorldPos.X, (float)MouseWorldPos.Y);
-//
-//            const Rect SearchRect (MouseFloatWorldPos - (SearchSize / 2), SearchSize);
-//
-//            const std::vector<int> SearchResults = SOLVER::QuadTree.Search(SearchRect);
-//
-//            for (const auto& Result : SearchResults) {
-//                const QuadElement& Element = SOLVER::QuadTree.m_Elements[Result];
-//
-//                const Particle& Particle = SOLVER::Particles[Element.m_Index];
-//
-//                IVector2 ParticleWindowLocation = VIEWPORT::WorldToViewport(IVector2((int)(Particle.position.X), (int)(Particle.position.Y)));
-//
-//                // DrawCircle(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.radius,{0, 158, 47, 127});
-//                DrawCircleLines(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.radius,{0, 158, 47, 255});
-//            }
-//            Rect::DrawRect(VIEWPORT::WorldToViewport(SearchRect), SKYBLUE);
-
         static bool draw_quad = false;
-
         ImGui::Begin("Debug Info");
-        ImGui::Text(std::string("FPS: " + std::to_string((int)std::ceil(CURRENT_FPS))).c_str());
-        ImGui::Text(std::string("Avg FPS: " + std::to_string((int)std::floor(AVG_FPS))).c_str());
+        ImGui::Text("%s", std::string("FPS: " + std::to_string((int)std::ceil(CURRENT_FPS))).c_str());
+        ImGui::Text("%s", std::string("Avg FPS: " + std::to_string((int)std::floor(AVG_FPS))).c_str());
         ImGui::PlotLines("FPS Graph",std::vector<float>(FPS_Queue.begin(), FPS_Queue.end()).data(), (int)FPS_Queue.size());
 //        ImGui::Spacing();
 //        ImGui::Spacing();
@@ -257,27 +239,27 @@ int main()
         ImGui::Spacing();
         ImGui::Spacing();
         ImGui::Spacing();
-        ImGui::Text(std::string("Objects: " + std::to_string((int)SOLVER::Particles.size())).c_str());
-        ImGui::Text(std::string("Comparisons: " + std::to_string((int)ObjectComparisons)).c_str());
-        ImGui::Text(std::string("Collisions: " + std::to_string((int)SOLVER::COLLISION_COUNT)).c_str());
+        ImGui::Text("%s", std::string("Objects: " + std::to_string((int)SOLVER::Particles.size())).c_str());
+        ImGui::Text("%s", std::string("Comparisons: " + std::to_string((int)ObjectComparisons)).c_str());
+        ImGui::Text("%s", std::string("Collisions: " + std::to_string((int)SOLVER::COLLISION_COUNT)).c_str());
         ImGui::Spacing();
         ImGui::Spacing();
         ImGui::Spacing();
-        ImGui::Text(std::string("Overlap Tests: " + std::to_string((int)RECT_PROF::OVERLAP_TESTS)).c_str());
-        ImGui::Text(std::string("Contain Tests: " + std::to_string((int)RECT_PROF::CONTAIN_TESTS)).c_str());
+        ImGui::Text("%s", std::string("Overlap Tests: " + std::to_string((int)RECT_PROF::OVERLAP_TESTS)).c_str());
+        ImGui::Text("%s", std::string("Contain Tests: " + std::to_string((int)RECT_PROF::CONTAIN_TESTS)).c_str());
         ImGui::Spacing();
         ImGui::Spacing();
         ImGui::Spacing();
         ImGui::Checkbox("Draw QuadTree", &draw_quad);
         ImGui::End();
 
-        ImGui::Begin("Spawn Particle");
         static float particle_radius = 8.f;
         static float particle_mass = 100.f;
         static float particle_color[4] = {0.f / 255, 191.f / 255, 255.f / 255, 255.f / 255};
         static float particle_position[2] = { 0.f, 0.f };
         static float particle_velocity[2] = { 0.f, 0.f};
         static float particle_acceleration[2] = { 0.f, -980.f };
+        ImGui::Begin("Spawn Particle");
         ImGui::InputFloat("Radius", &particle_radius);
         ImGui::InputFloat("Mass", &particle_mass);
         ImGui::InputFloat2("Position", particle_position);
@@ -313,6 +295,34 @@ int main()
             SOLVER::QuadTree.Insert({(int) SOLVER::Particles.size() - 1, GetParticleArea(particle)});
         }
         ImGui::End();
+
+        static bool delete_particles = false;
+        static float delete_radius = 100.f;
+        ImGui::Begin("Interaction");
+        ImGui::Checkbox("Delete", &delete_particles);
+        ImGui::InputFloat("Delete Radius", &delete_radius);
+        ImGui::End();
+
+        if (delete_particles) {
+            const IVector2 MouseWorldPos = VIEWPORT::ViewportToWorld(IVector2(sf::Mouse::getPosition(window).x, sf::Mouse::getPosition(window).y));
+            const FVector2 MouseFloatWorldPos ((float)MouseWorldPos.X, (float)MouseWorldPos.Y);
+
+            const Rect SearchRect (MouseFloatWorldPos - FVector2(delete_radius / 2, -delete_radius / 2), FVector2(delete_radius, delete_radius));
+
+//        const auto& SearchResults = SOLVER::QuadTree.FindLeaves(SearchRect, SOLVER::QuadTree.root_data);
+//        for (const auto& leaf : SearchResults) {
+//            const QuadElement& Element = SOLVER::QuadTree.m_Elements[leaf];
+//
+//            const Particle& Particle = SOLVER::Particles[Element.m_Index];
+//
+//            IVector2 ParticleWindowLocation = VIEWPORT::WorldToViewport(IVector2((int)(Particle.position.X), (int)(Particle.position.Y)));
+//
+//            // DrawCircle(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.radius,{0, 158, 47, 127});
+//            DrawCircleLines(ParticleWindowLocation.X, ParticleWindowLocation.Y, Particle.radius,{0, 158, 47, 255});
+//        }
+
+            window.draw(Rect::DrawRect(VIEWPORT::WorldToViewport(SearchRect), {0, 127, 255, 255}));
+        }
 
         if (draw_quad) {
             const auto& leaves = SOLVER::QuadTree.FindLeaves(SOLVER::QuadTree.root_data.rect, SOLVER::QuadTree.root_data);

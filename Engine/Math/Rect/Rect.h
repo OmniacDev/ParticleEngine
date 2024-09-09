@@ -47,14 +47,14 @@ public:
         sf::RectangleShape rect(sf::Vector2(R.Size.X, R.Size.Y));
         rect.setPosition(R.Position.X, R.Position.Y);
         if (Full) {
-            rect.setFillColor({Colour.r, Colour.g, Colour.b, (unsigned char)(Colour.a / 2)});
-            return rect;
+            rect.setFillColor({Colour.r, Colour.g, Colour.b, Colour.a});
         }
         else {
-            rect.setOutlineThickness(1.0f);
+            rect.setFillColor({Colour.r, Colour.g, Colour.b, 127});
+            rect.setOutlineThickness(-1.0f);
             rect.setOutlineColor({Colour.r, Colour.g, Colour.b, 255});
-            return rect;
         }
+        return rect;
     }
 
     static FVector2 MidPoint(const Rect& R) {
